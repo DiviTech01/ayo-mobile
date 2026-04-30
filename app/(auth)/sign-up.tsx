@@ -12,6 +12,7 @@ import {
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -116,6 +117,20 @@ export default function SignUpScreen() {
                 </Text>
               )}
             </Pressable>
+          </View>
+
+          <View className="mt-6 flex-row items-center">
+            <View className="h-px flex-1 bg-gray-200" />
+            <Text className="mx-3 text-xs uppercase tracking-wider text-gray-400">or</Text>
+            <View className="h-px flex-1 bg-gray-200" />
+          </View>
+
+          <View className="mt-6">
+            <GoogleSignInButton
+              label="Sign up with Google"
+              onError={(msg) => setError(msg)}
+              onSuccess={() => router.replace('/(tabs)')}
+            />
           </View>
 
           <View className="mt-10 flex-row justify-center">
