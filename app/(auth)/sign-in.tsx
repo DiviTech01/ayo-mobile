@@ -26,6 +26,12 @@ export default function SignInScreen() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('not confirmed') || msg.includes('not verified')) {
+        await supabase.auth.resend({ type: 'signup', email }).catch(() => undefined);
+        router.push({ pathname: '/(auth)/verify-otp', params: { email } });
+        return;
+      }
       setError(error.message);
       return;
     }

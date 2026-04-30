@@ -20,12 +20,10 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   const onSubmit = async () => {
     setBusy(true);
     setError(null);
-    setInfo(null);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -37,7 +35,10 @@ export default function SignUpScreen() {
       return;
     }
     if (!data.session) {
-      setInfo('Check your email to verify your account, then sign in.');
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email },
+      });
       return;
     }
     router.replace('/(tabs)');
@@ -99,12 +100,6 @@ export default function SignUpScreen() {
             {error && (
               <View className="rounded-lg bg-pan-red-50 px-3 py-2">
                 <Text className="text-sm text-pan-red-700">{error}</Text>
-              </View>
-            )}
-
-            {info && (
-              <View className="rounded-lg bg-pan-blue-50 px-3 py-2">
-                <Text className="text-sm text-pan-blue-700">{info}</Text>
               </View>
             )}
 
