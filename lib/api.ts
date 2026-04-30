@@ -136,6 +136,14 @@ export interface ReportSummary {
   createdAt: string;
 }
 
+export interface NLQResponse {
+  query: string;
+  answer: string;
+  chartData?: Record<string, unknown>;
+  chartType?: string;
+  followUpQuestions: string[];
+}
+
 const get = async <T>(path: string, params?: Record<string, unknown>): Promise<T> => {
   const res = await http.get<T>(path, { params });
   return res.data;
@@ -190,6 +198,16 @@ export const api = {
 
   reports: {
     list: () => get<ReportSummary[]>('/reports'),
+  },
+
+  query: {
+    ask: async (question: string, lang = 'en') => {
+      const res = await http.post<NLQResponse>('/query/natural-language', {
+        question,
+        lang,
+      });
+      return res.data;
+    },
   },
 };
 
