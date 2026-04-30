@@ -42,7 +42,7 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="mb-10">
-            <Text className="text-3xl font-bold text-pan-blue-700">AfYO</Text>
+            <Text className="text-3xl font-bold text-primary">AfYO</Text>
             <Text className="mt-2 text-base text-gray-500">Reset your password</Text>
           </View>
 
@@ -79,7 +79,7 @@ export default function ForgotPasswordScreen() {
               <Pressable
                 onPress={onSubmit}
                 disabled={busy || !email}
-                className="mt-2 rounded-xl bg-pan-blue-600 py-3.5 disabled:opacity-50"
+                className="mt-2 rounded-xl bg-primary py-3.5 disabled:opacity-50"
               >
                 {busy ? (
                   <ActivityIndicator color="white" />
@@ -95,7 +95,7 @@ export default function ForgotPasswordScreen() {
           <View className="mt-10">
             <Link href="/(auth)/sign-in" asChild>
               <Pressable>
-                <Text className="text-center text-sm text-pan-blue-600">Back to sign in</Text>
+                <Text className="text-center text-sm text-primary">Back to sign in</Text>
               </Pressable>
             </Link>
           </View>

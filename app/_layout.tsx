@@ -8,6 +8,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import {
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
@@ -84,6 +97,24 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

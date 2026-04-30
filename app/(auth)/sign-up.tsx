@@ -56,7 +56,7 @@ export default function SignUpScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="mb-10">
-            <Text className="text-3xl font-bold text-pan-blue-700">AfYO</Text>
+            <Text className="text-3xl font-bold text-primary">AfYO</Text>
             <Text className="mt-2 text-base text-gray-500">Create your account</Text>
           </View>
 
@@ -107,7 +107,7 @@ export default function SignUpScreen() {
             <Pressable
               onPress={onSubmit}
               disabled={busy || !name || !email || password.length < 8}
-              className="mt-2 rounded-xl bg-pan-blue-600 py-3.5 disabled:opacity-50"
+              className="mt-2 rounded-xl bg-primary py-3.5 disabled:opacity-50"
             >
               {busy ? (
                 <ActivityIndicator color="white" />
@@ -137,7 +137,7 @@ export default function SignUpScreen() {
             <Text className="text-sm text-gray-500">Already have an account? </Text>
             <Link href="/(auth)/sign-in" asChild>
               <Pressable>
-                <Text className="text-sm font-semibold text-pan-blue-600">Sign in</Text>
+                <Text className="text-sm font-semibold text-primary">Sign in</Text>
               </Pressable>
             </Link>
           </View>

@@ -91,7 +91,7 @@ export default function VerifyOtpScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="mb-10">
-            <Text className="text-3xl font-bold text-pan-blue-700">AfYO</Text>
+            <Text className="text-3xl font-bold text-primary">AfYO</Text>
             <Text className="mt-2 text-base text-gray-500">Verify your email</Text>
           </View>
 
@@ -141,7 +141,7 @@ export default function VerifyOtpScreen() {
                 className={
                   cooldown > 0 || resending
                     ? 'text-sm text-gray-400'
-                    : 'text-sm font-medium text-pan-blue-600'
+                    : 'text-sm font-medium text-primary'
                 }
               >
                 {resending
@@ -157,7 +157,7 @@ export default function VerifyOtpScreen() {
             <Text className="text-sm text-gray-500">Wrong email? </Text>
             <Link href="/(auth)/sign-up" asChild>
               <Pressable>
-                <Text className="text-sm font-semibold text-pan-blue-600">Start over</Text>
+                <Text className="text-sm font-semibold text-primary">Start over</Text>
               </Pressable>
             </Link>
           </View>

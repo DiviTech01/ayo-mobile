@@ -8,6 +8,7 @@ import { YouthIndexLeaderboard } from '@/components/widgets/YouthIndexLeaderboar
 import { RegionalBreakdown } from '@/components/widgets/RegionalBreakdown';
 import { CountrySpotlight } from '@/components/widgets/CountrySpotlight';
 import { ToolsGrid } from '@/components/widgets/ToolsGrid';
+import { DashboardWidgets } from '@/components/widgets/DashboardWidgets';
 
 export default function HomeScreen() {
   const [name, setName] = useState<string | null>(null);
@@ -30,27 +31,30 @@ export default function HomeScreen() {
   }, [qc]);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView
         contentContainerClassName="px-5 pb-10"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0369a1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#15803d" />
         }
       >
         <View className="pt-4">
-          <Text className="text-xs uppercase tracking-wider text-gray-500">Welcome back</Text>
-          <Text className="mt-1 text-2xl font-bold text-gray-900">
+          <Text className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Welcome back
+          </Text>
+          <Text className="mt-1 font-display text-3xl font-bold text-foreground">
             {name ? `${name} 👋` : 'Hello 👋'}
           </Text>
-          <Text className="mt-1 text-sm text-gray-500">
+          <Text className="mt-1 text-sm text-muted-foreground">
             African Youth Observatory · Continental insights
           </Text>
         </View>
 
         <View className="mt-6 gap-4">
           <StatsStrip />
-          <YouthIndexLeaderboard />
+          <DashboardWidgets />
           <ToolsGrid />
+          <YouthIndexLeaderboard />
           <RegionalBreakdown />
           <CountrySpotlight />
         </View>

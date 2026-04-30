@@ -50,7 +50,7 @@ export default function SignInScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="mb-10">
-            <Text className="text-3xl font-bold text-pan-blue-700">AfYO</Text>
+            <Text className="text-3xl font-bold text-primary">AfYO</Text>
             <Text className="mt-2 text-base text-gray-500">
               African Youth Observatory
             </Text>
@@ -98,7 +98,7 @@ export default function SignInScreen() {
             <Pressable
               onPress={onSubmit}
               disabled={busy || !email || !password}
-              className="mt-2 rounded-xl bg-pan-blue-600 py-3.5 disabled:opacity-50"
+              className="mt-2 rounded-xl bg-primary py-3.5 disabled:opacity-50"
             >
               {busy ? (
                 <ActivityIndicator color="white" />
@@ -109,7 +109,7 @@ export default function SignInScreen() {
 
             <Link href="/(auth)/forgot-password" asChild>
               <Pressable className="py-2">
-                <Text className="text-center text-sm text-pan-blue-600">Forgot password?</Text>
+                <Text className="text-center text-sm text-primary">Forgot password?</Text>
               </Pressable>
             </Link>
           </View>
@@ -131,7 +131,7 @@ export default function SignInScreen() {
             <Text className="text-sm text-gray-500">Don't have an account? </Text>
             <Link href="/(auth)/sign-up" asChild>
               <Pressable>
-                <Text className="text-sm font-semibold text-pan-blue-600">Sign up</Text>
+                <Text className="text-sm font-semibold text-primary">Sign up</Text>
               </Pressable>
             </Link>
           </View>
