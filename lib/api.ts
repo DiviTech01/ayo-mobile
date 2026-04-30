@@ -115,6 +115,27 @@ export interface InsightCard {
   generatedAt: string;
 }
 
+export interface Expert {
+  id: string;
+  name: string;
+  title: string;
+  organization: string;
+  country: string;
+  specialization: string[];
+  languages: string[];
+  bio: string;
+  photoUrl?: string;
+  verified: boolean;
+}
+
+export interface ReportSummary {
+  id: string;
+  title: string;
+  type: string;
+  countryId?: string;
+  createdAt: string;
+}
+
 const get = async <T>(path: string, params?: Record<string, unknown>): Promise<T> => {
   const res = await http.get<T>(path, { params });
   return res.data;
@@ -160,4 +181,18 @@ export const api = {
     anomalies: () => get<InsightCard[]>('/insights/anomalies'),
     correlations: () => get<InsightCard[]>('/insights/correlations'),
   },
+
+  experts: {
+    list: (params?: { country?: string; specialization?: string; search?: string }) =>
+      get<Expert[]>('/experts', params),
+    get: (id: string) => get<Expert>(`/experts/${id}`),
+  },
+
+  reports: {
+    list: () => get<ReportSummary[]>('/reports'),
+  },
 };
+
+export function reportPdfUrl(id: string) {
+  return `${API_URL}/reports/${id}/pdf`;
+}

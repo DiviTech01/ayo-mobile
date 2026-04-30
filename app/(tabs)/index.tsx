@@ -7,6 +7,7 @@ import { StatsStrip } from '@/components/widgets/StatsStrip';
 import { YouthIndexLeaderboard } from '@/components/widgets/YouthIndexLeaderboard';
 import { RegionalBreakdown } from '@/components/widgets/RegionalBreakdown';
 import { CountrySpotlight } from '@/components/widgets/CountrySpotlight';
+import { ToolsGrid } from '@/components/widgets/ToolsGrid';
 
 export default function HomeScreen() {
   const [name, setName] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export default function HomeScreen() {
         <View className="mt-6 gap-4">
           <StatsStrip />
           <YouthIndexLeaderboard />
+          <ToolsGrid />
           <RegionalBreakdown />
           <CountrySpotlight />
         </View>

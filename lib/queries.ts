@@ -69,3 +69,36 @@ export function usePolicyRankings() {
     staleTime: 10 * 60_000,
   });
 }
+
+export function useExperts(params?: { search?: string; specialization?: string; country?: string }) {
+  return useQuery({
+    queryKey: ['experts', params ?? {}] as const,
+    queryFn: () => api.experts.list(params),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useReports() {
+  return useQuery({
+    queryKey: ['reports'] as const,
+    queryFn: () => api.reports.list(),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useIndicators(themeId?: string) {
+  return useQuery({
+    queryKey: qk.indicators(themeId),
+    queryFn: () => api.indicators.list({ themeId }),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useIndicatorValues(indicatorId: string | undefined) {
+  return useQuery({
+    queryKey: ['indicator-values', indicatorId] as const,
+    queryFn: () => api.indicators.values(indicatorId!),
+    enabled: !!indicatorId,
+    staleTime: 5 * 60_000,
+  });
+}

@@ -95,6 +95,10 @@ export default function RootLayout() {
             <Stack.Screen name="pin-unlock" options={{ animation: 'fade' }} />
             <Stack.Screen name="pin-setup" options={{ presentation: 'modal' }} />
             <Stack.Screen name="country/[slug]" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="compare" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="policy" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="experts" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="reports" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
         </AuthGate>
