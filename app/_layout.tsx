@@ -99,6 +99,9 @@ export default function RootLayout() {
             <Stack.Screen name="policy" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="experts" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="reports" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="change-password" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
         </AuthGate>
