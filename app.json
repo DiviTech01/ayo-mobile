@@ -1,17 +1,23 @@
 {
   "expo": {
-    "name": "ayo-mobile",
+    "name": "AfYO",
     "slug": "ayo-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "ayomobile",
+    "scheme": "afyo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "org.pacsda.afyo",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Use Face ID to unlock AfYO without entering your PIN."
+      }
     },
     "android": {
+      "package": "org.pacsda.afyo",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -19,7 +25,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
     },
     "web": {
       "output": "static",
@@ -27,6 +37,8 @@
     },
     "plugins": [
       "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication",
       [
         "expo-splash-screen",
         {
@@ -38,11 +50,24 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0ea5e9"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    },
+    "owner": "pacsda"
   }
 }

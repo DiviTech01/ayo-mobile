@@ -1,17 +1,17 @@
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ExploreScreen() {
+export default function CountriesScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <ScrollView contentContainerClassName="px-5 py-6">
-        <Text className="text-2xl font-semibold text-gray-900">Explore</Text>
+        <Text className="text-2xl font-semibold text-gray-900">Countries</Text>
         <Text className="mt-1 text-sm text-gray-500">
-          Map view, regional filters, and indicator overlays.
+          54 African nations · tap any to view its report card.
         </Text>
 
-        <View className="mt-6 h-72 items-center justify-center rounded-2xl bg-gray-100">
-          <Text className="text-gray-400">🗺️ Africa map placeholder</Text>
+        <View className="mt-6 rounded-2xl border border-gray-200 p-6">
+          <Text className="text-gray-400">Country grid coming next phase.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
