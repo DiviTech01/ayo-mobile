@@ -36,7 +36,7 @@ export default function ReportsScreen() {
   const q = useReports();
 
   const filtered = useMemo(() => {
-    const list = q.data ?? [];
+    const list = Array.isArray(q.data) ? q.data : [];
     const qq = search.trim().toLowerCase();
     if (!qq) return list;
     return list.filter(

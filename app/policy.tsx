@@ -53,7 +53,7 @@ export default function PolicyMonitorScreen() {
   const q = usePolicyRankings();
 
   const rows = useMemo<Row[]>(() => {
-    const apiRows = q.data ?? [];
+    const apiRows = Array.isArray(q.data) ? q.data : [];
     if (apiRows.length > 0) {
       return apiRows
         .map((r) => ({

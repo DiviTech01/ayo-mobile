@@ -19,7 +19,7 @@ export function CountrySpotlight() {
   const q = useCountries();
 
   const country = useMemo(() => {
-    const list = q.data ?? [];
+    const list = Array.isArray(q.data) ? q.data : [];
     if (list.length === 0) return null;
     return list[dayOfYear() % list.length];
   }, [q.data]);

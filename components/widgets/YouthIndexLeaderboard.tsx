@@ -14,7 +14,7 @@ export function YouthIndexLeaderboard() {
   const router = useRouter();
   const q = useYouthIndexRankings();
 
-  const top5 = (q.data ?? []).slice(0, 5);
+  const top5 = Array.isArray(q.data) ? q.data.slice(0, 5) : [];
 
   return (
     <WidgetCard

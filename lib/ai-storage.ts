@@ -1,6 +1,4 @@
-import { createMMKV } from 'react-native-mmkv';
-
-const storage = createMMKV({ id: 'afyo-ai-conversations' });
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ChatRole = 'user' | 'assistant';
 
@@ -21,21 +19,25 @@ export interface Conversation {
   updatedAt: number;
 }
 
-const keyFor = (userId: string) => `convs.${userId}`;
+const keyFor = (userId: string) => `afyo.convs.${userId}`;
 
-export function loadConversations(userId: string): Conversation[] {
-  const raw = storage.getString(keyFor(userId));
+export async function loadConversations(userId: string): Promise<Conversation[]> {
+  const raw = await AsyncStorage.getItem(keyFor(userId));
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as Conversation[];
+    if (!Array.isArray(parsed)) return [];
     return parsed.sort((a, b) => b.updatedAt - a.updatedAt);
   } catch {
     return [];
   }
 }
 
-export function saveConversations(userId: string, conversations: Conversation[]) {
-  storage.set(keyFor(userId), JSON.stringify(conversations));
+export async function saveConversations(
+  userId: string,
+  conversations: Conversation[],
+): Promise<void> {
+  await AsyncStorage.setItem(keyFor(userId), JSON.stringify(conversations));
 }
 
 export function newId() {

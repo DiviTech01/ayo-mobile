@@ -42,13 +42,14 @@ export default function AskAIScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
       const id = data.user?.id ?? 'anon';
       setUserId(id);
-      const loaded = loadConversations(id);
+      const loaded = await loadConversations(id);
       setConversations(loaded);
       if (loaded.length > 0) setActiveId(loaded[0].id);
-    });
+    })();
   }, []);
 
   const active = useMemo(
@@ -58,7 +59,9 @@ export default function AskAIScreen() {
 
   const persist = (next: Conversation[]) => {
     setConversations(next);
-    if (userId) saveConversations(userId, next);
+    if (userId) {
+      saveConversations(userId, next).catch(() => undefined);
+    }
   };
 
   const startNew = () => {
@@ -120,7 +123,7 @@ export default function AskAIScreen() {
             ? { ...c, messages: [...c.messages, assistantMsg], updatedAt: Date.now() }
             : c,
         );
-        if (userId) saveConversations(userId, next);
+        if (userId) saveConversations(userId, next).catch(() => undefined);
         return next;
       });
     } catch (err) {
@@ -140,7 +143,7 @@ export default function AskAIScreen() {
             ? { ...c, messages: [...c.messages, errMsg], updatedAt: Date.now() }
             : c,
         );
-        if (userId) saveConversations(userId, next);
+        if (userId) saveConversations(userId, next).catch(() => undefined);
         return next;
       });
     } finally {

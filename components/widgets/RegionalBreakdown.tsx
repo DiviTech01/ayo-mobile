@@ -24,7 +24,7 @@ export function RegionalBreakdown() {
   const q = useYouthIndexRankings();
 
   const averages = useMemo(() => {
-    const rows = q.data ?? [];
+    const rows = Array.isArray(q.data) ? q.data : [];
     return REGIONS.map((region) => {
       const slice = rows.filter((r) => r.country.region === region);
       const avg =
