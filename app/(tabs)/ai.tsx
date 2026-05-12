@@ -24,16 +24,49 @@ import {
   newId,
   saveConversations,
 } from '@/lib/ai-storage';
+import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapLight, notifyError } from '@/lib/haptics';
-import { OpenOnWebLink } from '@/components/OpenOnWebLink';
-import { webLinks } from '@/lib/web-links';
 
-const SUGGESTIONS = [
-  'How does Nigeria compare to Kenya on youth literacy?',
-  'Which African countries have ratified the AYC?',
-  'Show youth unemployment trends in West Africa',
-  'What is the AYEMI score for Ghana?',
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const SUGGESTION_CARDS: { icon: IconName; title: string; prompt: string }[] = [
+  {
+    icon: 'trending-up',
+    title: 'Youth Unemployment',
+    prompt:
+      'What are youth unemployment trends across African regions? Which countries have improved the most?',
+  },
+  {
+    icon: 'school',
+    title: 'Education Access',
+    prompt:
+      'Compare youth education enrollment rates across the 5 African regions and identify the key gaps.',
+  },
+  {
+    icon: 'heart',
+    title: 'Health Metrics',
+    prompt:
+      'Show key youth health indicators across Africa — HIV prevalence, child mortality, and healthcare access.',
+  },
+  {
+    icon: 'trophy',
+    title: 'Top Performers',
+    prompt:
+      'Which 10 countries rank highest on the African Youth Index and what drives their success?',
+  },
+  {
+    icon: 'globe-outline',
+    title: 'Regional Analysis',
+    prompt:
+      'Give me a regional breakdown of youth development indicators across all 5 African sub-regions.',
+  },
+  {
+    icon: 'document-text',
+    title: 'Generate Report',
+    prompt:
+      'Generate a comprehensive structured report on African youth development with data tables, key findings, and recommendations.',
+  },
 ];
 
 export default function AskAIScreen() {
@@ -195,40 +228,13 @@ export default function AskAIScreen() {
       >
         <ScrollView
           ref={scrollRef}
-          contentContainerClassName="px-4 py-4 pb-2"
+          contentContainerClassName="px-4 py-5 pb-2"
           keyboardShouldPersistTaps="handled"
         >
           {showEmpty ? (
-            <View className="py-10">
-              <View className="items-center">
-                <View className="h-16 w-16 items-center justify-center rounded-2xl bg-accent/15">
-                  <Ionicons name="sparkles" size={28} color={colors.accent} />
-                </View>
-                <Text className="mt-4 font-display text-xl font-semibold text-foreground">
-                  Ask AfYO anything
-                </Text>
-                <Text className="mt-1 text-center text-sm text-muted-foreground">
-                  Natural-language queries on the African Youth Observatory dataset.
-                </Text>
-              </View>
-              <View className="mt-8 gap-2">
-                {SUGGESTIONS.map((s) => (
-                  <Pressable
-                    key={s}
-                    onPress={() => send(s)}
-                    className="rounded-xl border border-border bg-muted px-4 py-3 active:opacity-80"
-                  >
-                    <Text className="text-sm text-foreground">{s}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <OpenOnWebLink
-                href={webLinks.askAi}
-                label="For interactive charts on your answer, ask on africanyouthobservatory.org"
-              />
-            </View>
+            <WelcomeScreen onSuggestion={send} />
           ) : (
-            <View className="gap-4">
+            <View className="gap-5">
               {messages.map((m) => (
                 <MessageBubble key={m.id} message={m} onPressFollowUp={send} />
               ))}
@@ -239,13 +245,10 @@ export default function AskAIScreen() {
 
         <View className="border-t border-border px-3 py-2">
           <View className="flex-row items-end gap-2 rounded-2xl border border-border bg-card px-3 py-2">
-            <Pressable hitSlop={6} className="pb-1">
-              <Ionicons name="attach" size={20} color={colors.mutedForeground} />
-            </Pressable>
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Ask a question..."
+              placeholder="Ask about African youth data..."
               placeholderTextColor={colors.mutedForeground}
               multiline
               className="max-h-32 flex-1 py-1 text-base text-foreground"
@@ -255,12 +258,12 @@ export default function AskAIScreen() {
             <Pressable
               onPress={() => send(draft)}
               disabled={!draft.trim() || busy}
-              className={`h-8 w-8 items-center justify-center rounded-full ${
+              className={`h-9 w-9 items-center justify-center rounded-xl ${
                 draft.trim() && !busy ? 'bg-primary' : 'bg-muted'
               }`}
             >
               <Ionicons
-                name="arrow-up"
+                name={busy ? 'ellipsis-horizontal' : 'arrow-up'}
                 size={16}
                 color={
                   draft.trim() && !busy ? colors.primaryForeground : colors.mutedForeground
@@ -268,6 +271,9 @@ export default function AskAIScreen() {
               />
             </Pressable>
           </View>
+          <Text className="mt-1.5 text-center text-[10px] text-muted-foreground">
+            Enter to send · Shift+Enter for new line
+          </Text>
         </View>
       </KeyboardAvoidingView>
 
@@ -287,6 +293,46 @@ export default function AskAIScreen() {
   );
 }
 
+function WelcomeScreen({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
+  const colors = useThemeColors();
+  return (
+    <View className="py-10">
+      <View className="items-center">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+          <Ionicons name="sparkles" size={26} color={colors.primary} />
+        </View>
+        <Text className="mt-4 font-display text-xl font-bold text-foreground">
+          Ask anything about African Youth
+        </Text>
+        <Text className="mt-2 max-w-[42ch] text-center text-sm leading-5 text-muted-foreground">
+          Explore data from 54 countries, generate reports, compare regions, and uncover
+          insights powered by Claude AI.
+        </Text>
+      </View>
+
+      <View className="mt-8 gap-3">
+        {SUGGESTION_CARDS.map(({ icon, title, prompt }) => (
+          <Pressable
+            key={title}
+            onPress={() => onSuggestion(prompt)}
+            className="flex-row items-start gap-3 rounded-xl border border-border bg-card p-4 active:bg-muted"
+          >
+            <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Ionicons name={icon} size={16} color={colors.primary} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-foreground">{title}</Text>
+              <Text className="mt-0.5 text-xs leading-4 text-muted-foreground" numberOfLines={2}>
+                {prompt}
+              </Text>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function MessageBubble({
   message,
   onPressFollowUp,
@@ -294,34 +340,49 @@ function MessageBubble({
   message: ChatMessage;
   onPressFollowUp: (text: string) => void;
 }) {
+  const colors = useThemeColors();
   const isUser = message.role === 'user';
   return (
     <View className={isUser ? 'items-end' : 'items-start'}>
       <View
-        className={
-          isUser
-            ? 'max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5'
-            : message.error
-            ? 'max-w-[90%] rounded-2xl rounded-bl-md border border-destructive/30 bg-destructive/10 px-4 py-2.5'
-            : 'max-w-[90%]'
-        }
+        className={`max-w-[88%] flex-row gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
       >
-        <Text
+        <View
+          className={`mt-0.5 h-7 w-7 items-center justify-center rounded-full ${
+            isUser ? 'bg-primary' : 'bg-pan-green-500/15'
+          }`}
+        >
+          <Ionicons
+            name={isUser ? 'person' : 'sparkles'}
+            size={13}
+            color={isUser ? colors.primaryForeground : colors.primary}
+          />
+        </View>
+
+        <View
           className={
             isUser
-              ? 'text-base text-primary-foreground'
+              ? 'rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2.5'
               : message.error
-              ? 'text-sm text-destructive'
-              : 'text-base leading-6 text-foreground'
+              ? 'rounded-2xl rounded-tl-sm border border-destructive/30 bg-destructive/10 px-3.5 py-2.5'
+              : 'flex-1 rounded-2xl rounded-tl-sm border border-border bg-card px-3.5 py-2.5'
           }
         >
-          {message.content}
-        </Text>
+          {isUser ? (
+            <Text className="text-sm text-primary-foreground" style={{ lineHeight: 20 }}>
+              {message.content}
+            </Text>
+          ) : message.error ? (
+            <Text className="text-sm text-destructive">{message.content}</Text>
+          ) : (
+            <Markdown text={message.content} />
+          )}
+        </View>
       </View>
 
       {!isUser && message.followUps && message.followUps.length > 0 ? (
-        <View className="mt-3 w-full gap-1.5">
-          <Text className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <View className="ml-9 mt-3 w-[88%] gap-1.5">
+          <Text className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Follow-up
           </Text>
           {message.followUps.slice(0, 3).map((f) => (
@@ -343,11 +404,14 @@ function TypingIndicator() {
   const colors = useThemeColors();
   return (
     <View className="flex-row items-center gap-2">
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-accent/15">
-        <Ionicons name="sparkles" size={14} color={colors.accent} />
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-pan-green-500/15">
+        <Ionicons name="sparkles" size={13} color={colors.primary} />
       </View>
-      <View className="rounded-2xl bg-muted px-3 py-2">
-        <ActivityIndicator size="small" color={colors.mutedForeground} />
+      <View className="rounded-2xl border border-border bg-card px-3 py-2.5">
+        <View className="flex-row items-center gap-1.5">
+          <ActivityIndicator size="small" color={colors.mutedForeground} />
+          <Text className="text-sm text-muted-foreground">Thinking…</Text>
+        </View>
       </View>
     </View>
   );

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
+import { PageHeader } from '@/components/PageHeader';
 import { AfricaMap } from '@/components/AfricaMap';
 import { useCountryDirectory } from '@/lib/queries';
 import {
@@ -17,6 +18,15 @@ import { tapLight, tapSelection } from '@/lib/haptics';
 
 type RegionFilter = Region | 'All';
 
+const THEMES = ['All Themes', 'Population', 'Education', 'Health', 'Employment', 'Entrepreneurship'];
+const INDICATORS_BY_THEME: Record<string, string[]> = {
+  Population: ['Total Youth Population', 'Youth as % of Total', 'Growth Rate', 'Urban/Rural', 'Gender Distribution'],
+  Education: ['Literacy Rate', 'Primary Enrollment', 'Secondary Enrollment', 'Tertiary Enrollment', 'Completion Rates'],
+  Health: ['Healthcare Access', 'HIV Prevalence', 'Mental Health', 'Nutrition Status'],
+  Employment: ['Unemployment Rate', 'Labor Force Participation', 'Formal vs Informal', 'Industry Distribution'],
+  Entrepreneurship: ['Business Ownership', 'Startup Formation', 'Access to Finance', 'Innovation Metrics'],
+};
+
 const REGION_DOTS: Record<string, string> = {
   North: 'hsl(36, 100%, 65%)',
   West: 'hsl(142, 76%, 66%)',
@@ -30,6 +40,10 @@ export default function ExploreScreen() {
   const colors = useThemeColors();
   const [regionFilter, setRegionFilter] = useState<RegionFilter>('All');
   const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
+
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [theme, setTheme] = useState('All Themes');
+  const [indicator, setIndicator] = useState<string | null>(null);
 
   const directory = useCountryDirectory();
 
@@ -53,57 +67,100 @@ export default function ExploreScreen() {
   }, [directory.items]);
 
   const selected = selectedIso3 ? byIso3.get(selectedIso3) : null;
+  const availableIndicators =
+    theme !== 'All Themes' ? INDICATORS_BY_THEME[theme] ?? [] : [];
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="px-5 pb-2 pt-4">
-        <Text className="font-display text-2xl font-bold text-foreground">Explore Africa</Text>
-        <Text className="mt-0.5 text-sm text-muted-foreground">
-          Tap any country to see its AYEMI score
-        </Text>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="mt-4 gap-2 pr-5"
-        >
-          <FilterChip
-            label="All"
-            active={regionFilter === 'All'}
-            onPress={() => {
-              tapSelection();
-              setRegionFilter('All');
-            }}
-          />
-          {REGIONS.map((r) => (
-            <FilterChip
-              key={r}
-              label={REGION_ABBR[r]}
-              active={regionFilter === r}
-              onPress={() => {
-                tapSelection();
-                setRegionFilter(r);
-              }}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      <View className="px-5 pt-2">
-        <AfricaMap
-          regionFilter={regionFilter}
-          selectedIso3={selectedIso3}
-          onCountryPress={setSelectedIso3}
+      <ScrollView contentContainerClassName="pb-32">
+        <PageHeader
+          title="Data Explorer"
+          description="Explore comprehensive data on African youth across multiple countries and themes."
+          rightAction={{
+            icon: 'options-outline',
+            label: 'Filters',
+            onPress: () => setFilterOpen(true),
+          }}
         />
 
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          <Legend dot={REGION_DOTS.North} label="North" />
-          <Legend dot={REGION_DOTS.West} label="West" />
-          <Legend dot={REGION_DOTS.East} label="East" />
-          <Legend dot={REGION_DOTS.Central} label="Central" />
-          <Legend dot={REGION_DOTS.Southern} label="Southern" />
+        <View className="px-5 pt-3">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-2 pr-5"
+          >
+            <FilterChip
+              label="All"
+              active={regionFilter === 'All'}
+              onPress={() => {
+                tapSelection();
+                setRegionFilter('All');
+              }}
+            />
+            {REGIONS.map((r) => (
+              <FilterChip
+                key={r}
+                label={REGION_ABBR[r]}
+                active={regionFilter === r}
+                onPress={() => {
+                  tapSelection();
+                  setRegionFilter(r);
+                }}
+              />
+            ))}
+          </ScrollView>
         </View>
-      </View>
+
+        <View className="px-5 pt-4">
+          <View className="rounded-2xl border border-border bg-card p-4">
+            <Text className="font-display text-base font-bold text-foreground">Africa Map</Text>
+            <Text className="mt-0.5 text-xs text-muted-foreground">
+              Tap any country to view its youth data.
+            </Text>
+            <View className="mt-3">
+              <AfricaMap
+                regionFilter={regionFilter}
+                selectedIso3={selectedIso3}
+                onCountryPress={setSelectedIso3}
+              />
+            </View>
+            <View className="mt-3 flex-row flex-wrap gap-3">
+              <Legend dot={REGION_DOTS.North} label="North" />
+              <Legend dot={REGION_DOTS.West} label="West" />
+              <Legend dot={REGION_DOTS.East} label="East" />
+              <Legend dot={REGION_DOTS.Central} label="Central" />
+              <Legend dot={REGION_DOTS.Southern} label="Southern" />
+            </View>
+          </View>
+
+          <View className="mt-4 rounded-2xl border border-border bg-card p-4">
+            <Text className="font-display text-base font-bold text-foreground">Indicator Data</Text>
+            <Text className="mt-0.5 text-xs text-muted-foreground">
+              {indicator ? indicator : 'Choose a theme and indicator to view trends'}
+            </Text>
+            {!indicator ? (
+              <View className="mt-4 items-center justify-center rounded-xl bg-muted/40 py-12">
+                <Ionicons name="bar-chart-outline" size={36} color={colors.mutedForeground} />
+                <Text className="mt-2 text-sm text-muted-foreground">
+                  Open Filters to choose an indicator
+                </Text>
+                <Pressable
+                  onPress={() => setFilterOpen(true)}
+                  className="mt-3 rounded-md border border-border bg-card px-3 py-1.5 active:bg-muted"
+                >
+                  <Text className="text-xs font-semibold text-foreground">Open Filters</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View className="mt-4 items-center justify-center rounded-xl bg-muted/40 py-10">
+                <Text className="text-xs text-muted-foreground">
+                  Chart for {indicator} coming soon — preview on the web.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </ScrollView>
 
       {selected ? (
         <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl border-t border-border bg-card px-5 pb-6 pt-4 shadow-2xl">
@@ -118,12 +175,8 @@ export default function ExploreScreen() {
               </Text>
               <Text className="text-xs text-muted-foreground">{selected.region}</Text>
               <View className="mt-2 flex-row items-center gap-2">
-                <View
-                  className={`rounded-full px-2 py-0.5 ${tierColor(selected.score).bg}`}
-                >
-                  <Text
-                    className={`text-[11px] font-semibold ${tierColor(selected.score).text}`}
-                  >
+                <View className={`rounded-full px-2 py-0.5 ${tierColor(selected.score).bg}`}>
+                  <Text className={`text-[11px] font-semibold ${tierColor(selected.score).text}`}>
                     {tierColor(selected.score).label}
                   </Text>
                 </View>
@@ -132,11 +185,7 @@ export default function ExploreScreen() {
                 </Text>
               </View>
             </View>
-            <Pressable
-              hitSlop={8}
-              onPress={() => setSelectedIso3(null)}
-              className="p-1"
-            >
+            <Pressable hitSlop={8} onPress={() => setSelectedIso3(null)} className="p-1">
               <Ionicons name="close" size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
@@ -160,6 +209,19 @@ export default function ExploreScreen() {
           </Pressable>
         </View>
       ) : null}
+
+      <FiltersSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        theme={theme}
+        setTheme={(t) => {
+          setTheme(t);
+          setIndicator(null);
+        }}
+        indicator={indicator}
+        setIndicator={setIndicator}
+        availableIndicators={availableIndicators}
+      />
     </SafeAreaView>
   );
 }
@@ -197,5 +259,127 @@ function Legend({ dot, label }: { dot: string; label: string }) {
       <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: dot }} />
       <Text className="text-[11px] text-muted-foreground">{label}</Text>
     </View>
+  );
+}
+
+function FiltersSheet({
+  open,
+  onClose,
+  theme,
+  setTheme,
+  indicator,
+  setIndicator,
+  availableIndicators,
+}: {
+  open: boolean;
+  onClose: () => void;
+  theme: string;
+  setTheme: (t: string) => void;
+  indicator: string | null;
+  setIndicator: (i: string) => void;
+  availableIndicators: string[];
+}) {
+  const colors = useThemeColors();
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable className="flex-1 justify-end bg-black/50" onPress={onClose}>
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          className="rounded-t-3xl bg-card px-5 pb-8 pt-3"
+        >
+          <View className="mb-2 items-center">
+            <View className="h-1 w-10 rounded-full bg-muted" />
+          </View>
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text className="font-display text-lg font-bold text-foreground">Data Filters</Text>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Ionicons name="close" size={22} color={colors.foreground} />
+            </Pressable>
+          </View>
+
+          <ScrollView className="max-h-[70vh]">
+            <FilterLabel>Theme</FilterLabel>
+            <View className="mb-5 flex-row flex-wrap gap-2">
+              {THEMES.map((t) => {
+                const active = t === theme;
+                return (
+                  <Pressable
+                    key={t}
+                    onPress={() => {
+                      tapSelection();
+                      setTheme(t);
+                    }}
+                    className={`rounded-full px-3 py-1.5 ${
+                      active ? 'bg-primary' : 'border border-border bg-muted'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-medium ${
+                        active ? 'text-primary-foreground' : 'text-foreground'
+                      }`}
+                    >
+                      {t}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <FilterLabel>Indicator</FilterLabel>
+            <View className="mb-5 gap-2">
+              {availableIndicators.length === 0 ? (
+                <Text className="text-xs text-muted-foreground">
+                  Choose a theme first to see indicators.
+                </Text>
+              ) : (
+                availableIndicators.map((ind) => {
+                  const active = ind === indicator;
+                  return (
+                    <Pressable
+                      key={ind}
+                      onPress={() => {
+                        tapSelection();
+                        setIndicator(ind);
+                      }}
+                      className={`flex-row items-center justify-between rounded-xl border px-3.5 py-3 ${
+                        active
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-muted'
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm ${
+                          active ? 'font-semibold text-primary' : 'text-foreground'
+                        }`}
+                      >
+                        {ind}
+                      </Text>
+                      {active ? (
+                        <Ionicons name="checkmark" size={16} color={colors.primary} />
+                      ) : null}
+                    </Pressable>
+                  );
+                })
+              )}
+            </View>
+          </ScrollView>
+
+          <Pressable
+            onPress={onClose}
+            className="mt-2 flex-row items-center justify-center rounded-xl bg-primary py-3.5 active:opacity-80"
+          >
+            <Text className="text-base font-semibold text-primary-foreground">Apply</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function FilterLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {children}
+    </Text>
   );
 }
