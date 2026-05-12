@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,26 +12,17 @@ import {
   setBiometricEnabled,
   signOut,
 } from '@/lib/auth';
-import { useAppTheme, type AppearancePreference } from '@/lib/theme';
 import { useThemeColors } from '@/lib/theme-colors';
-
-const APPEARANCE_LABEL: Record<AppearancePreference, string> = {
-  system: 'System',
-  light: 'Light',
-  dark: 'Dark',
-};
 
 export default function SettingsScreen() {
   const router = useRouter();
   const colors = useThemeColors();
-  const { preference, setPreference } = useAppTheme();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [organization, setOrganization] = useState<string | null>(null);
   const [pinSet, setPinSet] = useState(false);
   const [bioOn, setBioOn] = useState(false);
   const [bioSupported, setBioSupported] = useState(false);
-  const [appearanceOpen, setAppearanceOpen] = useState(false);
 
   const refresh = async () => {
     const { data } = await supabase.auth.getUser();
@@ -161,13 +152,6 @@ export default function SettingsScreen() {
             value="Default"
             disabled
           />
-          <Divider />
-          <NavRow
-            icon="contrast-outline"
-            label="Appearance"
-            value={APPEARANCE_LABEL[preference]}
-            onPress={() => setAppearanceOpen(true)}
-          />
         </View>
 
         <SectionLabel>Resources</SectionLabel>
@@ -217,61 +201,6 @@ export default function SettingsScreen() {
 
         <Text className="mt-6 text-center text-xs text-muted-foreground">AfYO v1.0.0</Text>
       </ScrollView>
-
-      <Modal
-        visible={appearanceOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAppearanceOpen(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/40 justify-end"
-          onPress={() => setAppearanceOpen(false)}
-        >
-          <Pressable className="bg-card rounded-t-3xl p-5" onPress={(e) => e.stopPropagation()}>
-            <View className="self-center mb-3 h-1 w-10 rounded-full bg-muted" />
-            <Text className="font-display text-lg font-bold text-foreground">Appearance</Text>
-            <Text className="mt-1 text-sm text-muted-foreground">
-              Choose how AfYO looks. System matches your device theme.
-            </Text>
-            <View className="mt-4 gap-2">
-              {(['system', 'light', 'dark'] as AppearancePreference[]).map((opt) => {
-                const selected = preference === opt;
-                const icon =
-                  opt === 'system' ? 'contrast' : opt === 'light' ? 'sunny' : 'moon';
-                return (
-                  <Pressable
-                    key={opt}
-                    onPress={() => {
-                      setPreference(opt);
-                      setAppearanceOpen(false);
-                    }}
-                    className={`flex-row items-center gap-3 rounded-xl border p-4 ${
-                      selected
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card'
-                    }`}
-                  >
-                    <Ionicons name={icon} size={20} color={colors.primary} />
-                    <Text className="flex-1 text-base font-semibold text-foreground">
-                      {APPEARANCE_LABEL[opt]}
-                    </Text>
-                    {selected && (
-                      <Ionicons name="checkmark" size={20} color={colors.primary} />
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Pressable
-              onPress={() => setAppearanceOpen(false)}
-              className="mt-3 rounded-xl bg-muted py-3"
-            >
-              <Text className="text-center text-sm font-semibold text-foreground">Close</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeAreaView>
   );
 }

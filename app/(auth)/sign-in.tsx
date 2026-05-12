@@ -60,7 +60,7 @@ export default function SignInScreen() {
         >
           <AuthHeader
             title="Welcome back"
-            subtitle="Sign in to continue exploring youth data across all 54 African countries."
+            subtitle="Sign in to access your dashboard and explore youth data."
           />
 
           <View className="mt-8 gap-4">
@@ -85,7 +85,7 @@ export default function SignInScreen() {
               placeholder="Enter your password"
               password
               rightAction={{
-                label: 'Forgot?',
+                label: 'Forgot password?',
                 onPress: () => router.push('/(auth)/forgot-password'),
               }}
             />
@@ -105,7 +105,7 @@ export default function SignInScreen() {
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
                 <>
-                  <Text className="text-base font-semibold text-primary-foreground">Sign in</Text>
+                  <Text className="text-base font-semibold text-primary-foreground">Sign In</Text>
                   <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
                 </>
               )}
