@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { usePolicyRankings } from '@/lib/queries';
 import { flagFromIso3, slugify, tierColor } from '@/lib/country-helpers';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 type Row = {
   slug: string;
@@ -58,33 +59,16 @@ export default function PolicyMonitorScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Back</Text>
-        </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground">Policy Monitor</Text>
-        <View className="w-12" />
-      </View>
+      <ScrollView contentContainerClassName="pb-12">
+        <PageHeader
+          title="Policy Monitor"
+          description="AYC ratification, National Youth Policy status, WPAY + Agenda 2063 alignment across 54 countries."
+          icon="shield-checkmark"
+          showBack
+        />
 
-      <ScrollView contentContainerClassName="px-5 pb-12">
-        <View className="pt-4">
-          <Text className="text-xs uppercase tracking-wider text-muted-foreground">
-            Africa Youth Charter compliance
-          </Text>
-          <Text className="mt-1 font-display text-2xl font-bold text-foreground">
-            54 countries ranked
-          </Text>
-          <Text className="mt-1 text-sm text-muted-foreground">
-            AYC ratification, National Youth Policy status, WPAY + Agenda 2063 alignment.
-          </Text>
-        </View>
-
-        <View className="mt-4 flex-row items-center rounded-xl border border-border bg-card px-3 py-2.5">
+        <View className="px-5 pt-4">
+          <View className="flex-row items-center rounded-xl border border-border bg-card px-3 py-2.5">
           <Ionicons name="search" size={18} color={colors.mutedForeground} />
           <TextInput
             value={search}
@@ -95,7 +79,7 @@ export default function PolicyMonitorScreen() {
             autoCorrect={false}
             autoCapitalize="none"
           />
-        </View>
+          </View>
 
         {q.isLoading && rows.length === 0 ? (
           <View className="items-center py-16">
@@ -165,6 +149,7 @@ export default function PolicyMonitorScreen() {
               </Pressable>
             );
           })}
+        </View>
         </View>
       </ScrollView>
     </SafeAreaView>

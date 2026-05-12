@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -78,24 +78,17 @@ export default function EditProfileScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Settings</Text>
-        </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground">Edit profile</Text>
-        <View className="w-12" />
-      </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
-        <ScrollView contentContainerClassName="p-5">
+        <ScrollView contentContainerClassName="pb-12">
+          <PageHeader
+            title="Edit Profile"
+            description="Update your name and organization. These appear on your account."
+            showBack
+          />
+          <View className="p-5">
           <View className="rounded-2xl border border-border bg-card p-5">
             <Field
               label="Full name"
@@ -145,6 +138,7 @@ export default function EditProfileScreen() {
               </Text>
             )}
           </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

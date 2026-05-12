@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 type FaqItem = { question: string; answer: string };
 type FaqCategory = {
@@ -120,7 +120,6 @@ const CATEGORIES: FaqCategory[] = [
 ];
 
 export default function FaqScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
   const [open, setOpen] = useState<string | null>(null);
 
@@ -128,21 +127,12 @@ export default function FaqScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-row items-center px-4 pt-2 pb-3 border-b border-border">
-        <Pressable
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-        </Pressable>
-        <View className="ml-2 flex-1">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="help-circle" size={18} color={colors.primary} />
-            <Text className="font-display text-lg font-bold text-foreground">FAQ</Text>
-          </View>
-          <Text className="text-xs text-muted-foreground">Common questions about the Observatory</Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Frequently Asked"
+        description="Common questions about the African Youth Observatory."
+        icon="help-circle"
+        showBack
+      />
 
       <ScrollView contentContainerClassName="p-4 pb-10 gap-6">
         {CATEGORIES.map((cat, i) => (

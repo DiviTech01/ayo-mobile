@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -50,26 +50,18 @@ export default function ChangePasswordScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Settings</Text>
-        </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground">
-          Change password
-        </Text>
-        <View className="w-12" />
-      </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
-        <ScrollView contentContainerClassName="p-5">
+        <ScrollView contentContainerClassName="pb-12">
+          <PageHeader
+            title="Change Password"
+            description="Set a new password for your account. Other devices will need to sign in again."
+            icon="key"
+            showBack
+          />
+          <View className="p-5">
           <View className="rounded-2xl border border-border bg-card p-5">
             <Text className="text-sm leading-5 text-muted-foreground">
               Enter a new password. You&rsquo;ll stay signed in on this device — other devices
@@ -128,6 +120,7 @@ export default function ChangePasswordScreen() {
               </Text>
             )}
           </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

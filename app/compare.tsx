@@ -9,12 +9,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCountryDirectory, useYouthIndexRankings } from '@/lib/queries';
 import type { CountryListItem } from '@/lib/queries';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapSelection } from '@/lib/haptics';
+import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
 import type { YouthIndexScore } from '@/lib/api';
@@ -33,7 +34,6 @@ const DIMENSIONS: { key: DimensionKey; label: string }[] = [
 const DEFAULT_COUNTRIES = ['Nigeria', 'Kenya', 'Ghana', 'South Africa'];
 
 export default function CompareScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
   const directory = useCountryDirectory();
   const rankingsQ = useYouthIndexRankings();
@@ -100,22 +100,16 @@ export default function CompareScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Back</Text>
-        </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground">Compare</Text>
-        <Pressable onPress={onShare} hitSlop={8} className="px-3 py-1.5">
-          <Ionicons name="share-outline" size={20} color={colors.foreground} />
-        </Pressable>
-      </View>
+      <ScrollView contentContainerClassName="pb-12">
+        <PageHeader
+          title="Compare Countries"
+          description="Compare youth development indicators across multiple African countries. Analyze trends, identify gaps, and discover insights."
+          icon="bar-chart"
+          showBack
+          rightAction={{ icon: 'share-outline', onPress: onShare }}
+        />
 
-      <ScrollView contentContainerClassName="p-5 pb-12">
+        <View className="p-5">
         <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Dimension
         </Text>
@@ -209,6 +203,7 @@ export default function CompareScreen() {
         </Text>
 
         <OpenOnWebLink href={webLinks.compare} />
+        </View>
       </ScrollView>
 
       <CountryPickerModal

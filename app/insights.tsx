@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAnomalies, useCorrelations } from '@/lib/queries';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
 import type { Anomaly, Correlation } from '@/lib/api';
@@ -12,7 +12,6 @@ import type { Anomaly, Correlation } from '@/lib/api';
 type Tab = 'anomalies' | 'correlations';
 
 export default function InsightsScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
   const [tab, setTab] = useState<Tab>('anomalies');
   const [year, setYear] = useState(2024);
@@ -40,25 +39,15 @@ export default function InsightsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-row items-center px-4 pt-2 pb-3 border-b border-border">
-        <Pressable
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-        </Pressable>
-        <View className="ml-2 flex-1">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="sparkles" size={18} color={colors.primary} />
-            <Text className="font-display text-lg font-bold text-foreground">AI Insights</Text>
-          </View>
-          <Text className="text-xs text-muted-foreground">
-            Anomalies and correlations across all countries
-          </Text>
-        </View>
-      </View>
+      <ScrollView contentContainerClassName="pb-10">
+        <PageHeader
+          title="AI-Powered Insights"
+          description="Intelligent analysis of youth development trends, patterns, and recommendations across 54 African countries."
+          icon="sparkles"
+          showBack
+        />
 
-      <ScrollView contentContainerClassName="p-4 pb-10">
+        <View className="p-4">
         <View className="flex-row gap-2 mb-4">
           <SummaryStat label="Signals" value={summary.total} icon="sparkles" tint="primary" />
           <SummaryStat label="Critical" value={summary.critical} icon="warning" tint="red" />
@@ -127,6 +116,7 @@ export default function InsightsScreen() {
         )}
 
         <OpenOnWebLink href={webLinks.insights} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

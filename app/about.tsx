@@ -1,34 +1,29 @@
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 const PACSDA_URL = 'https://pacsda.org';
 const CONTACT_URL = 'https://pacsda.org/contact';
 
 export default function AboutScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Settings</Text>
-        </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground">About AfYO</Text>
-        <View className="w-12" />
-      </View>
+      <ScrollView contentContainerClassName="pb-12">
+        <PageHeader
+          title="About AfYO"
+          description="The mobile companion to the African Youth Observatory — built by PACSDA for the African Union ecosystem."
+          icon="information-circle"
+          showBack
+        />
 
-      <ScrollView contentContainerClassName="px-5 pb-12">
+        <View className="px-5">
         <View className="items-center pt-8">
           <View className="h-20 w-20 items-center justify-center rounded-2xl bg-accent/15">
             <Ionicons name="globe" size={36} color={colors.accent} />
@@ -92,6 +87,7 @@ export default function AboutScreen() {
         <Text className="mt-8 text-center text-xs text-muted-foreground">
           © PACSDA · Built for the African Union ecosystem.
         </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

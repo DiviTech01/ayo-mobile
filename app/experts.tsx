@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useExperts } from '@/lib/queries';
 import type { Expert } from '@/lib/api';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function ExpertsScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
   const [search, setSearch] = useState('');
   const q = useExperts();
@@ -30,31 +30,16 @@ export default function ExpertsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Back</Text>
-        </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground">Experts</Text>
-        <View className="w-12" />
-      </View>
+      <ScrollView contentContainerClassName="pb-12">
+        <PageHeader
+          title="Expert Directory"
+          description="Researchers, policy advocates, and youth-development practitioners across the continent."
+          icon="people"
+          showBack
+        />
 
-      <ScrollView contentContainerClassName="px-5 pb-12">
-        <View className="pt-4">
-          <Text className="text-xs uppercase tracking-wider text-muted-foreground">Network</Text>
-          <Text className="mt-1 font-display text-2xl font-bold text-foreground">
-            Expert directory
-          </Text>
-          <Text className="mt-1 text-sm text-muted-foreground">
-            Researchers, policy advocates, and youth-development practitioners across the continent.
-          </Text>
-        </View>
-
-        <View className="mt-4 flex-row items-center rounded-xl border border-border bg-card px-3 py-2.5">
+        <View className="px-5 pt-4">
+        <View className="flex-row items-center rounded-xl border border-border bg-card px-3 py-2.5">
           <Ionicons name="search" size={18} color={colors.mutedForeground} />
           <TextInput
             value={search}
@@ -85,6 +70,7 @@ export default function ExpertsScreen() {
             ))}
           </View>
         )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

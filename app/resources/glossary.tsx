@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 type Term = { term: string; definition: string; category: string };
 
@@ -31,7 +31,6 @@ const TERMS: Term[] = [
 const CATEGORIES = ['All', 'Demographics', 'Education', 'Employment', 'Health', 'Entrepreneurship', 'Gender', 'Indices', 'Data Quality'];
 
 export default function GlossaryScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
@@ -47,21 +46,12 @@ export default function GlossaryScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-row items-center px-4 pt-2 pb-3 border-b border-border">
-        <Pressable
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-        </Pressable>
-        <View className="ml-2 flex-1">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="book" size={18} color={colors.primary} />
-            <Text className="font-display text-lg font-bold text-foreground">Glossary</Text>
-          </View>
-          <Text className="text-xs text-muted-foreground">Definitions of key terms and indicators</Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Glossary"
+        description="Definitions of key terms and indicators used across the African Youth Observatory."
+        icon="book"
+        showBack
+      />
 
       <View className="px-4 pt-3 pb-2">
         <View className="flex-row items-center rounded-xl border border-border bg-card px-3 py-2">

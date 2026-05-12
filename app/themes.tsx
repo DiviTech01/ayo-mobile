@@ -4,6 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemes } from '@/lib/queries';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
 
@@ -35,22 +36,14 @@ export default function ThemesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-row items-center px-4 pt-2 pb-3 border-b border-border">
-        <Pressable
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-        </Pressable>
-        <View className="ml-2">
-          <Text className="font-display text-lg font-bold text-foreground">Thematic Areas</Text>
-          <Text className="text-xs text-muted-foreground">
-            {themes.length || '—'} dimensions of youth development
-          </Text>
-        </View>
-      </View>
+      <ScrollView contentContainerClassName="pb-2">
+        <PageHeader
+          title="Thematic Areas"
+          description="Explore our core thematic areas of youth development in Africa."
+          showBack
+        />
 
-      <ScrollView contentContainerClassName="p-4 pb-2 gap-3">
+        <View className="p-4 gap-3">
         {q.isLoading && themes.length === 0 ? (
           <View className="items-center py-16">
             <ActivityIndicator color={colors.primary} />
@@ -128,6 +121,7 @@ export default function ThemesScreen() {
 
         <OpenOnWebLink href={webLinks.themes} />
         <View className="pb-10" />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

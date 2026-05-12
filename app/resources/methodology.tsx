@@ -1,8 +1,8 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/lib/theme-colors';
+import { PageHeader } from '@/components/PageHeader';
 
 type Section = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -162,28 +162,16 @@ const SECTIONS: Section[] = [
 ];
 
 export default function MethodologyScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-row items-center px-4 pt-2 pb-3 border-b border-border">
-        <Pressable
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-        </Pressable>
-        <View className="ml-2 flex-1">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="document-text" size={18} color={colors.primary} />
-            <Text className="font-display text-lg font-bold text-foreground">Methodology</Text>
-          </View>
-          <Text className="text-xs text-muted-foreground">
-            How we collect, process, and validate data
-          </Text>
-        </View>
-      </View>
+      <PageHeader
+        title="Methodology"
+        description="How we collect, process, and validate data across 54 African countries."
+        icon="document-text"
+        showBack
+      />
 
       <ScrollView contentContainerClassName="p-4 pb-10 gap-3">
         {SECTIONS.map((section) => (
