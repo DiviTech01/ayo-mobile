@@ -9,6 +9,7 @@ import {
 } from '@/lib/queries';
 import { AyemiGauge } from '@/components/report/AyemiGauge';
 import { IndicatorCard } from '@/components/report/IndicatorCard';
+import { GradientHero } from '@/components/GradientHero';
 import { useThemeColors } from '@/lib/theme-colors';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
@@ -97,53 +98,73 @@ export default function CountryReportScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="flex-row items-center gap-1 px-2 py-1.5"
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
-          <Text className="text-sm font-medium text-foreground">Countries</Text>
-        </Pressable>
-        <Pressable onPress={onShare} hitSlop={8} className="px-3 py-1.5">
-          <Ionicons name="share-outline" size={20} color={colors.foreground} />
-        </Pressable>
-      </View>
-
       <ScrollView contentContainerClassName="pb-12">
-        {!country ? (
-          <View className="items-center py-20">
-            <ActivityIndicator color={colors.primary} />
+        <GradientHero className="px-5 pt-3 pb-7">
+          <View className="flex-row items-center justify-between">
+            <Pressable
+              onPress={() => {
+                tapLight();
+                router.back();
+              }}
+              hitSlop={8}
+              className="-ml-1 flex-row items-center gap-1 p-1 active:opacity-60"
+            >
+              <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+              <Text className="text-sm font-medium text-foreground">Countries</Text>
+            </Pressable>
+            <Pressable
+              onPress={onShare}
+              hitSlop={8}
+              className="flex-row items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 active:bg-muted"
+            >
+              <Ionicons name="share-outline" size={14} color={colors.foreground} />
+              <Text className="text-xs font-semibold text-foreground">Share</Text>
+            </Pressable>
           </View>
-        ) : (
-          <>
-            <View className="bg-card px-5 pb-6 pt-4">
+
+          {!country ? (
+            <View className="mt-8 items-center">
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <View className="mt-5">
               <Text className="text-7xl">{country.flagEmoji ?? '🏳️'}</Text>
-              <Text className="mt-1 font-display text-3xl font-bold text-foreground">
+              <Text className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">
                 {country.name}
               </Text>
-              <Text className="mt-0.5 text-sm text-muted-foreground">
+              <Text className="mt-1 text-sm text-muted-foreground">
                 {country.region}
                 {country.capital ? ` · ${country.capital}` : ''}
                 {overlay?.lastDataYear ? ` · Latest data ${overlay.lastDataYear}` : ''}
               </Text>
 
               <View className="mt-3 flex-row flex-wrap gap-1.5">
-                {overlay?.hasRealData ? (
-                  <Tag accent="blue">Real data</Tag>
-                ) : null}
+                {overlay?.hasRealData ? <Tag accent="blue">Real data</Tag> : null}
                 {country.ayemiRank != null ? (
                   <Tag>{`Rank #${country.ayemiRank}`}</Tag>
                 ) : null}
               </View>
+            </View>
+          )}
+        </GradientHero>
 
-              <View className="mt-6 items-center">
+        {!country ? null : (
+          <>
+            <View className="px-5 pt-2">
+              <View className="rounded-2xl border border-border bg-card p-5 items-center">
+                <Text className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  AYEMI Score
+                </Text>
                 <AyemiGauge score={realScore ?? 0} tier={tier} />
               </View>
+            </View>
 
-              {overlay?.real ? (
-                <View className="mt-6 flex-row flex-wrap gap-2.5">
+            {overlay?.real ? (
+              <View className="px-5 pt-4">
+                <Text className="mb-2 font-display text-base font-bold text-foreground">
+                  Headline indicators
+                </Text>
+                <View className="flex-row flex-wrap gap-2.5">
                   {overlay.real.totalYouthMillions != null && (
                     <HeadlineStat
                       label="Youth (15–35)"
@@ -181,10 +202,10 @@ export default function CountryReportScreen() {
                     />
                   )}
                 </View>
-              ) : null}
-            </View>
+              </View>
+            ) : null}
 
-            <View className="mt-3 gap-4 px-5">
+            <View className="mt-5 gap-4 px-5">
               {indicators.length > 0 ? (
                 <View>
                   <Text className="mb-3 font-display text-base font-bold text-foreground">
@@ -249,7 +270,7 @@ function Tag({
 
 function HeadlineStat({ label, value }: { label: string; value: string }) {
   return (
-    <View className="min-w-[45%] flex-1 rounded-xl bg-muted p-3">
+    <View className="min-w-[45%] flex-1 rounded-xl border border-border bg-card p-3">
       <Text className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Text>
       <Text className="mt-0.5 font-display text-xl font-bold text-foreground tabular-nums">
         {value}

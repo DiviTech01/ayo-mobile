@@ -17,7 +17,6 @@ import { useThemeColors } from '@/lib/theme-colors';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const colors = useThemeColors();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [organization, setOrganization] = useState<string | null>(null);
