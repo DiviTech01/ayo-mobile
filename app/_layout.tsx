@@ -5,7 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import {
@@ -25,6 +25,7 @@ import {
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import { hasPin } from '@/lib/auth';
+import { ThemeProvider as AppThemeProvider } from '@/lib/theme';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,12 +33,18 @@ const queryClient = new QueryClient({
   },
 });
 
+type PinGateValue = { markPinPassed: () => void };
+const PinGateContext = createContext<PinGateValue>({ markPinPassed: () => undefined });
+
+export function usePinGate() {
+  return useContext(PinGateContext);
+}
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
   const [session, setSession] = useState<Session | null>(null);
-  const [pinRequired, setPinRequired] = useState(false);
-  const [pinPassed, setPinPassed] = useState(false);
+  const [pinChecked, setPinChecked] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -45,15 +52,21 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
     (async () => {
       const { data } = await supabase.auth.getSession();
-      const pin = await hasPin();
+      const needsPin = data.session ? await hasPin() : false;
       if (!mounted) return;
       setSession(data.session);
-      setPinRequired(pin);
+      setPinChecked(!needsPin);
       setReady(true);
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, s) => {
       setSession(s);
+      if (event === 'SIGNED_OUT') {
+        setPinChecked(false);
+      } else if (event === 'SIGNED_IN' && s) {
+        const needsPin = await hasPin();
+        if (!needsPin) setPinChecked(true);
+      }
     });
 
     return () => {
@@ -67,22 +80,24 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const inAuth = segments[0] === '(auth)';
     const inUnlock = segments[0] === 'pin-unlock';
 
-    if (!session && !inAuth) {
-      router.replace('/(auth)/sign-in');
+    if (!session) {
+      if (!inAuth) router.replace('/(auth)/sign-in');
       return;
     }
-    if (session && inAuth) {
+    if (inAuth) {
       router.replace('/(tabs)');
       return;
     }
-    if (session && pinRequired && !pinPassed && !inUnlock) {
+    if (!pinChecked && !inUnlock) {
       router.replace('/pin-unlock');
       return;
     }
-    if (session && (!pinRequired || pinPassed) && inUnlock) {
+    if (pinChecked && inUnlock) {
       router.replace('/(tabs)');
     }
-  }, [ready, session, pinRequired, pinPassed, segments, router]);
+  }, [ready, session, pinChecked, segments, router]);
+
+  const markPinPassed = useCallback(() => setPinChecked(true), []);
 
   if (!ready) {
     return (
@@ -92,7 +107,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <PinGateContext.Provider value={{ markPinPassed }}>{children}</PinGateContext.Provider>
+  );
 }
 
 export default function RootLayout() {
@@ -118,6 +135,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AppThemeProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthGate>
           <Stack screenOptions={{ headerShown: false }}>
@@ -130,6 +148,11 @@ export default function RootLayout() {
             <Stack.Screen name="policy" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="experts" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="reports" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="themes" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="insights" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="resources/glossary" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="resources/faq" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="resources/methodology" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="change-password" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
@@ -138,6 +161,7 @@ export default function RootLayout() {
         </AuthGate>
         <StatusBar style="auto" />
       </ThemeProvider>
+      </AppThemeProvider>
     </QueryClientProvider>
   );
 }

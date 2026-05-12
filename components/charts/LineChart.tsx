@@ -1,7 +1,8 @@
 import { View } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
-import { colorFor } from './colors';
+import { useChartPalette } from './colors';
 import { Legend } from './BarChart';
+import { useThemeColors } from '@/lib/theme-colors';
 
 type Datum = { year: string } & Record<string, string | number>;
 
@@ -14,6 +15,8 @@ type Props = {
 };
 
 export function LineChart({ data, series, fill = false, width = 320, height = 180 }: Props) {
+  const palette = useChartPalette();
+  const colors = useThemeColors();
   const padding = { top: 12, right: 12, bottom: 24, left: 28 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
@@ -40,14 +43,14 @@ export function LineChart({ data, series, fill = false, width = 320, height = 18
                 y1={y}
                 x2={padding.left + chartW}
                 y2={y}
-                stroke="#f3f4f6"
+                stroke={colors.border}
                 strokeWidth={1}
               />
               <SvgText
                 x={padding.left - 4}
                 y={y + 3}
                 fontSize={9}
-                fill="#9ca3af"
+                fill={colors.mutedForeground}
                 textAnchor="end"
               >
                 {value}
@@ -71,21 +74,22 @@ export function LineChart({ data, series, fill = false, width = 320, height = 18
                 } L ${points[0].x} ${padding.top + chartH} Z`
               : '';
 
+          const seriesColor = palette[si % palette.length];
           return (
             <G key={s}>
               {fill && (
-                <Path d={fillPath} fill={colorFor(si)} fillOpacity={0.12} />
+                <Path d={fillPath} fill={seriesColor} fillOpacity={0.12} />
               )}
               <Path
                 d={linePath}
-                stroke={colorFor(si)}
+                stroke={seriesColor}
                 strokeWidth={2}
                 fill="none"
                 strokeLinejoin="round"
                 strokeLinecap="round"
               />
               {points.map((p, i) => (
-                <Circle key={i} cx={p.x} cy={p.y} r={2.5} fill={colorFor(si)} />
+                <Circle key={i} cx={p.x} cy={p.y} r={2.5} fill={seriesColor} />
               ))}
             </G>
           );
@@ -97,7 +101,7 @@ export function LineChart({ data, series, fill = false, width = 320, height = 18
             x={xFor(i)}
             y={height - 6}
             fontSize={9}
-            fill="#9ca3af"
+            fill={colors.mutedForeground}
             textAnchor="middle"
           >
             {d.year}

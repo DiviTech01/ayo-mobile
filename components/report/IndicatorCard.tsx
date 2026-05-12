@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Indicator } from '@/data/countryReports';
+import { useThemeColors } from '@/lib/theme-colors';
 
 const SEV_BORDER: Record<Indicator['severity'], string> = {
   red: 'border-pan-red-200',
@@ -16,42 +17,51 @@ const SEV_BAR: Record<Indicator['severity'], string> = {
   navy: 'bg-pan-blue-500',
 };
 
-const TREND_ICON: Record<Indicator['trend'], { name: 'trending-up' | 'trending-down' | 'remove'; color: string }> = {
-  'up-good': { name: 'trending-up', color: '#15803d' },
-  'up-bad': { name: 'trending-up', color: '#b91c1c' },
-  'down-good': { name: 'trending-down', color: '#15803d' },
-  'down-bad': { name: 'trending-down', color: '#b91c1c' },
-  flat: { name: 'remove', color: '#6b7280' },
+type TrendKey = Indicator['trend'];
+
+const TREND_ICON: Record<TrendKey, 'trending-up' | 'trending-down' | 'remove'> = {
+  'up-good': 'trending-up',
+  'up-bad': 'trending-up',
+  'down-good': 'trending-down',
+  'down-bad': 'trending-down',
+  flat: 'remove',
 };
 
 export function IndicatorCard({ indicator }: { indicator: Indicator }) {
-  const trend = TREND_ICON[indicator.trend];
+  const colors = useThemeColors();
+  const trendName = TREND_ICON[indicator.trend];
+  const trendColor =
+    indicator.trend === 'up-good' || indicator.trend === 'down-good'
+      ? colors.aydGreen
+      : indicator.trend === 'up-bad' || indicator.trend === 'down-bad'
+      ? colors.aydRed
+      : colors.mutedForeground;
   const widthPct = Math.max(2, Math.min(100, indicator.barPct));
 
   return (
-    <View className={`rounded-xl border bg-white p-4 ${SEV_BORDER[indicator.severity]}`}>
+    <View className={`rounded-xl border bg-card p-4 ${SEV_BORDER[indicator.severity]}`}>
       <View className="flex-row items-start justify-between">
         <View className="flex-1 pr-2">
-          <Text className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+          <Text className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {indicator.topic}
           </Text>
-          <Text className="mt-0.5 text-2xl font-bold text-gray-900 tabular-nums">
+          <Text className="mt-0.5 font-display text-2xl font-bold text-foreground tabular-nums">
             {indicator.value}
           </Text>
         </View>
-        <Ionicons name={trend.name} size={18} color={trend.color} />
+        <Ionicons name={trendName} size={18} color={trendColor} />
       </View>
 
-      <Text className="mt-2 text-xs leading-4 text-gray-700">{indicator.label}</Text>
+      <Text className="mt-2 text-xs leading-4 text-foreground">{indicator.label}</Text>
 
-      <View className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100">
+      <View className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
         <View
           className={`h-full rounded-full ${SEV_BAR[indicator.severity]}`}
           style={{ width: `${widthPct}%` }}
         />
       </View>
 
-      <Text className="mt-2 text-[11px] italic text-gray-500" numberOfLines={2}>
+      <Text className="mt-2 text-[11px] italic text-muted-foreground" numberOfLines={2}>
         {indicator.compare}
       </Text>
     </View>

@@ -6,16 +6,22 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { AuthHeader } from '@/components/AuthHeader';
+import { AuthInput } from '@/components/AuthInput';
+import { AmbientBackground } from '@/components/AmbientBackground';
+import { useThemeColors } from '@/lib/theme-colors';
+import { notifyError, notifySuccess } from '@/lib/haptics';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -33,105 +39,105 @@ export default function SignInScreen() {
         router.push({ pathname: '/(auth)/verify-otp', params: { email } });
         return;
       }
+      notifyError();
       setError(error.message);
       return;
     }
+    notifySuccess();
     router.replace('/(tabs)');
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background">
+      <AmbientBackground />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
         <ScrollView
-          contentContainerClassName="flex-grow justify-center px-6 py-8"
+          contentContainerClassName="flex-grow px-6 pt-4 pb-10"
           keyboardShouldPersistTaps="handled"
         >
-          <View className="mb-10">
-            <Text className="text-3xl font-bold text-primary">AfYO</Text>
-            <Text className="mt-2 text-base text-gray-500">
-              African Youth Observatory
-            </Text>
-          </View>
+          <AuthHeader
+            title="Welcome back"
+            subtitle="Sign in to continue exploring youth data across all 54 African countries."
+          />
 
-          <Text className="text-2xl font-semibold text-gray-900">Welcome back</Text>
-          <Text className="mt-1 text-sm text-gray-500">
-            Sign in to continue to your dashboard.
-          </Text>
+          <View className="mt-8 gap-4">
+            <AuthInput
+              label="Email"
+              leftIcon="mail-outline"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="you@example.com"
+              autoCorrect={false}
+            />
 
-          <View className="mt-8 space-y-4">
-            <View>
-              <Text className="mb-1.5 text-sm font-medium text-gray-700">Email</Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor="#9ca3af"
-                className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
-              />
-            </View>
+            <AuthInput
+              label="Password"
+              leftIcon="lock-closed-outline"
+              value={password}
+              onChangeText={setPassword}
+              autoComplete="password"
+              placeholder="Enter your password"
+              password
+              rightAction={{
+                label: 'Forgot?',
+                onPress: () => router.push('/(auth)/forgot-password'),
+              }}
+            />
 
-            <View>
-              <Text className="mb-1.5 text-sm font-medium text-gray-700">Password</Text>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password"
-                placeholder="••••••••"
-                placeholderTextColor="#9ca3af"
-                className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
-              />
-            </View>
-
-            {error && (
-              <View className="rounded-lg bg-pan-red-50 px-3 py-2">
-                <Text className="text-sm text-pan-red-700">{error}</Text>
+            {error ? (
+              <View className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5">
+                <Text className="text-sm text-destructive">{error}</Text>
               </View>
-            )}
+            ) : null}
 
             <Pressable
               onPress={onSubmit}
               disabled={busy || !email || !password}
-              className="mt-2 rounded-xl bg-primary py-3.5 disabled:opacity-50"
+              className="mt-2 flex-row items-center justify-center gap-2 rounded-xl bg-primary py-3.5 disabled:opacity-50 active:opacity-80"
             >
               {busy ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color={colors.primaryForeground} />
               ) : (
-                <Text className="text-center text-base font-semibold text-white">Sign in</Text>
+                <>
+                  <Text className="text-base font-semibold text-primary-foreground">Sign in</Text>
+                  <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
+                </>
               )}
             </Pressable>
-
-            <Link href="/(auth)/forgot-password" asChild>
-              <Pressable className="py-2">
-                <Text className="text-center text-sm text-primary">Forgot password?</Text>
-              </Pressable>
-            </Link>
           </View>
 
-          <View className="mt-6 flex-row items-center">
-            <View className="h-px flex-1 bg-gray-200" />
-            <Text className="mx-3 text-xs uppercase tracking-wider text-gray-400">or</Text>
-            <View className="h-px flex-1 bg-gray-200" />
+          <View className="mt-8 flex-row items-center">
+            <View className="h-px flex-1 bg-border" />
+            <Text className="mx-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+              or continue with
+            </Text>
+            <View className="h-px flex-1 bg-border" />
           </View>
 
-          <View className="mt-6">
+          <View className="mt-4">
             <GoogleSignInButton
-              onError={(msg) => setError(msg)}
-              onSuccess={() => router.replace('/(tabs)')}
+              onError={(msg) => {
+                notifyError();
+                setError(msg);
+              }}
+              onSuccess={() => {
+                notifySuccess();
+                router.replace('/(tabs)');
+              }}
             />
           </View>
 
           <View className="mt-10 flex-row justify-center">
-            <Text className="text-sm text-gray-500">Don't have an account? </Text>
+            <Text className="text-sm text-muted-foreground">Don&rsquo;t have an account? </Text>
             <Link href="/(auth)/sign-up" asChild>
-              <Pressable>
-                <Text className="text-sm font-semibold text-primary">Sign up</Text>
+              <Pressable hitSlop={6}>
+                <Text className="text-sm font-semibold text-primary">Create account</Text>
               </Pressable>
             </Link>
           </View>

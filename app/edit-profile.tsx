@@ -13,9 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
+import { useThemeColors } from '@/lib/theme-colors';
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const [name, setName] = useState('');
   const [organization, setOrganization] = useState('');
   const [email, setEmail] = useState('');
@@ -38,32 +41,53 @@ export default function EditProfileScreen() {
     setBusy(true);
     setError(null);
     setSaved(false);
-    const { error } = await supabase.auth.updateUser({
-      data: { name: name.trim(), organization: organization.trim() },
+
+    const trimmedName = name.trim();
+    const trimmedOrg = organization.trim();
+
+    const { error: metaErr } = await supabase.auth.updateUser({
+      data: { name: trimmedName, organization: trimmedOrg },
     });
-    setBusy(false);
-    if (error) {
-      setError(error.message);
+    if (metaErr) {
+      setBusy(false);
+      setError(metaErr.message);
       return;
     }
+
+    try {
+      await api.auth.updateProfile({
+        name: trimmedName,
+        organization: trimmedOrg,
+      });
+    } catch (err) {
+      setBusy(false);
+      setError(
+        err instanceof Error
+          ? `Saved on device, but couldn't sync to server: ${err.message}`
+          : 'Saved on device, but couldn’t sync to server.',
+      );
+      return;
+    }
+
+    setBusy(false);
     setSaved(true);
     setTimeout(() => router.back(), 600);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-2 py-2">
+      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
         <Pressable
           onPress={() => router.back()}
           hitSlop={8}
           className="flex-row items-center gap-1 px-2 py-1.5"
         >
-          <Ionicons name="chevron-back" size={22} color="#111827" />
-          <Text className="text-sm font-medium text-gray-900">Settings</Text>
+          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+          <Text className="text-sm font-medium text-foreground">Settings</Text>
         </Pressable>
-        <Text className="text-base font-semibold text-gray-900">Edit profile</Text>
+        <Text className="font-display text-base font-semibold text-foreground">Edit profile</Text>
         <View className="w-12" />
       </View>
 
@@ -72,7 +96,7 @@ export default function EditProfileScreen() {
         className="flex-1"
       >
         <ScrollView contentContainerClassName="p-5">
-          <View className="rounded-2xl border border-gray-200 bg-white p-5">
+          <View className="rounded-2xl border border-border bg-card p-5">
             <Field
               label="Full name"
               value={name}
@@ -86,37 +110,37 @@ export default function EditProfileScreen() {
               placeholder="(optional)"
             />
             <View className="mt-4">
-              <Text className="mb-1.5 text-sm font-medium text-gray-700">Email</Text>
-              <View className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <Text className="text-base text-gray-500">{email}</Text>
+              <Text className="mb-1.5 text-sm font-medium text-foreground">Email</Text>
+              <View className="rounded-xl border border-border bg-muted px-4 py-3">
+                <Text className="text-base text-muted-foreground">{email}</Text>
               </View>
-              <Text className="mt-1 text-[11px] text-gray-400">
+              <Text className="mt-1 text-[11px] text-muted-foreground">
                 Email changes happen elsewhere.
               </Text>
             </View>
           </View>
 
           {error ? (
-            <View className="mt-3 rounded-lg bg-pan-red-50 px-3 py-2">
-              <Text className="text-sm text-pan-red-700">{error}</Text>
+            <View className="mt-3 rounded-lg bg-destructive/10 px-3 py-2">
+              <Text className="text-sm text-destructive">{error}</Text>
             </View>
           ) : null}
 
           {saved ? (
-            <View className="mt-3 rounded-lg bg-pan-green-50 px-3 py-2">
-              <Text className="text-sm text-pan-green-700">Saved.</Text>
+            <View className="mt-3 rounded-lg bg-primary/10 px-3 py-2">
+              <Text className="text-sm text-primary">Saved.</Text>
             </View>
           ) : null}
 
           <Pressable
             onPress={onSave}
             disabled={busy || !name.trim()}
-            className="mt-6 rounded-xl bg-pan-blue-600 py-3.5 disabled:opacity-50"
+            className="mt-6 rounded-xl bg-primary py-3.5 disabled:opacity-50 active:opacity-80"
           >
             {busy ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <Text className="text-center text-base font-semibold text-white">
+              <Text className="text-center text-base font-semibold text-primary-foreground">
                 Save changes
               </Text>
             )}
@@ -138,15 +162,16 @@ function Field({
   onChangeText: (next: string) => void;
   placeholder: string;
 }) {
+  const colors = useThemeColors();
   return (
     <View className="mb-4">
-      <Text className="mb-1.5 text-sm font-medium text-gray-700">{label}</Text>
+      <Text className="mb-1.5 text-sm font-medium text-foreground">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#9ca3af"
-        className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
+        placeholderTextColor={colors.mutedForeground}
+        className="rounded-xl border border-border bg-muted px-4 py-3 text-base text-foreground"
       />
     </View>
   );

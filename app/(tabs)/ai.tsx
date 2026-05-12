@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { api } from '@/lib/api';
+import { api, type AiChatHistoryItem } from '@/lib/api';
 import {
   type ChatMessage,
   type Conversation,
@@ -24,6 +24,10 @@ import {
   newId,
   saveConversations,
 } from '@/lib/ai-storage';
+import { useThemeColors } from '@/lib/theme-colors';
+import { tapLight, notifyError } from '@/lib/haptics';
+import { OpenOnWebLink } from '@/components/OpenOnWebLink';
+import { webLinks } from '@/lib/web-links';
 
 const SUGGESTIONS = [
   'How does Nigeria compare to Kenya on youth literacy?',
@@ -33,6 +37,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AskAIScreen() {
+  const colors = useThemeColors();
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -75,6 +80,7 @@ export default function AskAIScreen() {
   const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
+    tapLight();
     setDraft('');
 
     let conv = active;
@@ -109,7 +115,11 @@ export default function AskAIScreen() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
 
     try {
-      const res = await api.query.ask(trimmed);
+      const history: AiChatHistoryItem[] = (conv.messages ?? [])
+        .filter((m) => !m.error)
+        .slice(-8)
+        .map((m) => ({ role: m.role, content: m.content }));
+      const res = await api.ai.chat({ message: trimmed, history });
       const assistantMsg: ChatMessage = {
         id: newId(),
         role: 'assistant',
@@ -127,6 +137,7 @@ export default function AskAIScreen() {
         return next;
       });
     } catch (err) {
+      notifyError();
       const errMsg: ChatMessage = {
         id: newId(),
         role: 'assistant',
@@ -164,16 +175,16 @@ export default function AskAIScreen() {
   const showEmpty = messages.length === 0 && !busy;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <View className="flex-row items-center justify-between border-b border-gray-100 px-4 py-3">
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+      <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
         <Pressable onPress={() => setDrawerOpen(true)} hitSlop={8} className="p-1">
-          <Ionicons name="menu" size={22} color="#111827" />
+          <Ionicons name="menu" size={22} color={colors.foreground} />
         </Pressable>
-        <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
+        <Text className="font-display text-base font-semibold text-foreground" numberOfLines={1}>
           {active?.title ?? 'Ask AI'}
         </Text>
         <Pressable onPress={startNew} hitSlop={8} className="p-1">
-          <Ionicons name="create-outline" size={22} color="#111827" />
+          <Ionicons name="create-outline" size={22} color={colors.foreground} />
         </Pressable>
       </View>
 
@@ -190,13 +201,13 @@ export default function AskAIScreen() {
           {showEmpty ? (
             <View className="py-10">
               <View className="items-center">
-                <View className="h-16 w-16 items-center justify-center rounded-2xl bg-pan-blue-50">
-                  <Ionicons name="sparkles" size={28} color="#0284c7" />
+                <View className="h-16 w-16 items-center justify-center rounded-2xl bg-accent/15">
+                  <Ionicons name="sparkles" size={28} color={colors.accent} />
                 </View>
-                <Text className="mt-4 text-xl font-semibold text-gray-900">
+                <Text className="mt-4 font-display text-xl font-semibold text-foreground">
                   Ask AfYO anything
                 </Text>
-                <Text className="mt-1 text-center text-sm text-gray-500">
+                <Text className="mt-1 text-center text-sm text-muted-foreground">
                   Natural-language queries on the African Youth Observatory dataset.
                 </Text>
               </View>
@@ -205,12 +216,16 @@ export default function AskAIScreen() {
                   <Pressable
                     key={s}
                     onPress={() => send(s)}
-                    className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 active:bg-gray-100"
+                    className="rounded-xl border border-border bg-muted px-4 py-3 active:opacity-80"
                   >
-                    <Text className="text-sm text-gray-700">{s}</Text>
+                    <Text className="text-sm text-foreground">{s}</Text>
                   </Pressable>
                 ))}
               </View>
+              <OpenOnWebLink
+                href={webLinks.askAi}
+                label="For interactive charts on your answer, ask on africanyouthobservatory.org"
+              />
             </View>
           ) : (
             <View className="gap-4">
@@ -222,18 +237,18 @@ export default function AskAIScreen() {
           )}
         </ScrollView>
 
-        <View className="border-t border-gray-100 px-3 py-2">
-          <View className="flex-row items-end gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2">
+        <View className="border-t border-border px-3 py-2">
+          <View className="flex-row items-end gap-2 rounded-2xl border border-border bg-card px-3 py-2">
             <Pressable hitSlop={6} className="pb-1">
-              <Ionicons name="attach" size={20} color="#9ca3af" />
+              <Ionicons name="attach" size={20} color={colors.mutedForeground} />
             </Pressable>
             <TextInput
               value={draft}
               onChangeText={setDraft}
               placeholder="Ask a question..."
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.mutedForeground}
               multiline
-              className="max-h-32 flex-1 py-1 text-base text-gray-900"
+              className="max-h-32 flex-1 py-1 text-base text-foreground"
               onSubmitEditing={() => send(draft)}
               blurOnSubmit={false}
             />
@@ -241,13 +256,15 @@ export default function AskAIScreen() {
               onPress={() => send(draft)}
               disabled={!draft.trim() || busy}
               className={`h-8 w-8 items-center justify-center rounded-full ${
-                draft.trim() && !busy ? 'bg-pan-blue-600' : 'bg-gray-200'
+                draft.trim() && !busy ? 'bg-primary' : 'bg-muted'
               }`}
             >
               <Ionicons
                 name="arrow-up"
                 size={16}
-                color={draft.trim() && !busy ? 'white' : '#9ca3af'}
+                color={
+                  draft.trim() && !busy ? colors.primaryForeground : colors.mutedForeground
+                }
               />
             </Pressable>
           </View>
@@ -283,19 +300,19 @@ function MessageBubble({
       <View
         className={
           isUser
-            ? 'max-w-[85%] rounded-2xl rounded-br-md bg-pan-blue-600 px-4 py-2.5'
+            ? 'max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5'
             : message.error
-            ? 'max-w-[90%] rounded-2xl rounded-bl-md border border-pan-red-200 bg-pan-red-50 px-4 py-2.5'
+            ? 'max-w-[90%] rounded-2xl rounded-bl-md border border-destructive/30 bg-destructive/10 px-4 py-2.5'
             : 'max-w-[90%]'
         }
       >
         <Text
           className={
             isUser
-              ? 'text-base text-white'
+              ? 'text-base text-primary-foreground'
               : message.error
-              ? 'text-sm text-pan-red-700'
-              : 'text-base leading-6 text-gray-900'
+              ? 'text-sm text-destructive'
+              : 'text-base leading-6 text-foreground'
           }
         >
           {message.content}
@@ -304,16 +321,16 @@ function MessageBubble({
 
       {!isUser && message.followUps && message.followUps.length > 0 ? (
         <View className="mt-3 w-full gap-1.5">
-          <Text className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
+          <Text className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Follow-up
           </Text>
           {message.followUps.slice(0, 3).map((f) => (
             <Pressable
               key={f}
               onPress={() => onPressFollowUp(f)}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 active:bg-gray-50"
+              className="rounded-xl border border-border bg-card px-3 py-2 active:bg-muted"
             >
-              <Text className="text-sm text-gray-700">{f}</Text>
+              <Text className="text-sm text-foreground">{f}</Text>
             </Pressable>
           ))}
         </View>
@@ -323,13 +340,14 @@ function MessageBubble({
 }
 
 function TypingIndicator() {
+  const colors = useThemeColors();
   return (
     <View className="flex-row items-center gap-2">
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-pan-blue-50">
-        <Ionicons name="sparkles" size={14} color="#0284c7" />
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-accent/15">
+        <Ionicons name="sparkles" size={14} color={colors.accent} />
       </View>
-      <View className="rounded-2xl bg-gray-100 px-3 py-2">
-        <ActivityIndicator size="small" color="#6b7280" />
+      <View className="rounded-2xl bg-muted px-3 py-2">
+        <ActivityIndicator size="small" color={colors.mutedForeground} />
       </View>
     </View>
   );
@@ -355,6 +373,7 @@ function ConversationsDrawer({
   onNew: () => void;
   onDelete: (id: string) => void;
 }) {
+  const colors = useThemeColors();
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(open);
@@ -391,8 +410,8 @@ function ConversationsDrawer({
     >
       <Animated.View
         style={{
-          ...StyleSheetFlatten({ flex: 1 }),
-          backgroundColor: '#0009',
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
           opacity: fade,
         }}
       >
@@ -405,23 +424,23 @@ function ConversationsDrawer({
           left: 0,
           bottom: 0,
           width: DRAWER_WIDTH,
-          backgroundColor: 'white',
+          backgroundColor: colors.card,
           transform: [{ translateX: slide }],
         }}
       >
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
-          <View className="flex-row items-center justify-between border-b border-gray-100 px-4 py-3">
-            <Text className="text-base font-semibold text-gray-900">Chats</Text>
+          <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
+            <Text className="font-display text-base font-semibold text-foreground">Chats</Text>
             <Pressable onPress={onNew} hitSlop={8} className="flex-row items-center gap-1">
-              <Ionicons name="create-outline" size={18} color="#0284c7" />
-              <Text className="text-sm font-semibold text-pan-blue-600">New</Text>
+              <Ionicons name="create-outline" size={18} color={colors.primary} />
+              <Text className="text-sm font-semibold text-primary">New</Text>
             </Pressable>
           </View>
 
           <ScrollView contentContainerClassName="px-2 py-2">
             {conversations.length === 0 ? (
               <View className="items-center py-10">
-                <Text className="text-sm text-gray-500">No conversations yet</Text>
+                <Text className="text-sm text-muted-foreground">No conversations yet</Text>
               </View>
             ) : (
               conversations.map((c) => {
@@ -430,24 +449,24 @@ function ConversationsDrawer({
                   <View
                     key={c.id}
                     className={`mb-1 flex-row items-center rounded-xl px-3 py-2.5 ${
-                      isActive ? 'bg-pan-blue-50' : ''
+                      isActive ? 'bg-primary/10' : ''
                     }`}
                   >
                     <Pressable onPress={() => onSelect(c.id)} className="flex-1">
                       <Text
                         numberOfLines={1}
                         className={`text-sm ${
-                          isActive ? 'font-semibold text-pan-blue-700' : 'text-gray-800'
+                          isActive ? 'font-semibold text-primary' : 'text-foreground'
                         }`}
                       >
                         {c.title}
                       </Text>
-                      <Text className="text-[10px] text-gray-400">
+                      <Text className="text-[10px] text-muted-foreground">
                         {c.messages.length} messages
                       </Text>
                     </Pressable>
                     <Pressable onPress={() => onDelete(c.id)} hitSlop={6} className="p-1">
-                      <Ionicons name="trash-outline" size={14} color="#9ca3af" />
+                      <Ionicons name="trash-outline" size={14} color={colors.mutedForeground} />
                     </Pressable>
                   </View>
                 );
@@ -458,8 +477,4 @@ function ConversationsDrawer({
       </Animated.View>
     </View>
   );
-}
-
-function StyleSheetFlatten<T>(s: T): T {
-  return s;
 }

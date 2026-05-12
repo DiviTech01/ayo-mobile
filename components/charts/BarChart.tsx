@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
-import { colorFor } from './colors';
+import { useChartPalette } from './colors';
+import { useThemeColors } from '@/lib/theme-colors';
 
 type Datum = { year: string } & Record<string, string | number>;
 
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function BarChart({ data, series, width = 320, height = 180 }: Props) {
+  const palette = useChartPalette();
+  const colors = useThemeColors();
   const padding = { top: 12, right: 8, bottom: 24, left: 28 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
@@ -40,14 +43,14 @@ export function BarChart({ data, series, width = 320, height = 180 }: Props) {
                 y1={y}
                 x2={padding.left + chartW}
                 y2={y}
-                stroke="#f3f4f6"
+                stroke={colors.border}
                 strokeWidth={1}
               />
               <SvgText
                 x={padding.left - 4}
                 y={y + 3}
                 fontSize={9}
-                fill="#9ca3af"
+                fill={colors.mutedForeground}
                 textAnchor="end"
               >
                 {value}
@@ -72,7 +75,7 @@ export function BarChart({ data, series, width = 320, height = 180 }: Props) {
                     y={y}
                     width={Math.max(2, barWidth - 1)}
                     height={Math.max(0, h)}
-                    fill={colorFor(si)}
+                    fill={palette[si % palette.length]}
                     rx={1.5}
                   />
                 );
@@ -81,7 +84,7 @@ export function BarChart({ data, series, width = 320, height = 180 }: Props) {
                 x={groupX + (groupWidth - innerPad * 2) / 2}
                 y={height - 6}
                 fontSize={9}
-                fill="#9ca3af"
+                fill={colors.mutedForeground}
                 textAnchor="middle"
               >
                 {d.year}
@@ -97,6 +100,7 @@ export function BarChart({ data, series, width = 320, height = 180 }: Props) {
 }
 
 export function Legend({ series }: { series: string[] }) {
+  const palette = useChartPalette();
   return (
     <View className="mt-2 flex-row flex-wrap gap-2">
       {series.map((s, i) => (
@@ -106,10 +110,10 @@ export function Legend({ series }: { series: string[] }) {
               width: 8,
               height: 8,
               borderRadius: 2,
-              backgroundColor: colorFor(i),
+              backgroundColor: palette[i % palette.length],
             }}
           />
-          <Text className="text-[10px] text-gray-600">{s}</Text>
+          <Text className="text-[10px] text-muted-foreground">{s}</Text>
         </View>
       ))}
     </View>

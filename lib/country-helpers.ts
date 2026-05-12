@@ -47,3 +47,12 @@ export function tierColor(score: number): { bg: string; text: string; label: str
   if (score >= 34) return { bg: 'bg-pan-gold-100', text: 'text-pan-gold-800', label: 'Developing' };
   return { bg: 'bg-pan-red-100', text: 'text-pan-red-800', label: 'Critical' };
 }
+
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}

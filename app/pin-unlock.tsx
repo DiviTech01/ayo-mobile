@@ -10,9 +10,13 @@ import {
   signOut,
   verifyPin,
 } from '@/lib/auth';
+import { useThemeColors } from '@/lib/theme-colors';
+import { usePinGate } from './_layout';
 
 export default function PinUnlockScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
+  const { markPinPassed } = usePinGate();
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [bioReady, setBioReady] = useState(false);
@@ -22,15 +26,19 @@ export default function PinUnlockScreen() {
       if (await isBiometricEnabled()) {
         setBioReady(true);
         const ok = await authenticateWithBiometrics();
-        if (ok) router.replace('/(tabs)');
+        if (ok) {
+          markPinPassed();
+          router.replace('/(tabs)');
+        }
       }
     })();
-  }, [router]);
+  }, [router, markPinPassed]);
 
   useEffect(() => {
     if (pin.length === 4) {
       verifyPin(pin).then((ok) => {
         if (ok) {
+          markPinPassed();
           router.replace('/(tabs)');
         } else {
           setError('Wrong PIN');
@@ -40,15 +48,15 @@ export default function PinUnlockScreen() {
     } else {
       setError(null);
     }
-  }, [pin, router]);
+  }, [pin, router, markPinPassed]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 items-center justify-center px-6">
         <View className="mb-12 items-center">
-          <Text className="text-3xl font-bold text-pan-blue-700">AfYO</Text>
-          <Text className="mt-3 text-base text-gray-700">Enter your PIN</Text>
-          {error && <Text className="mt-2 text-sm text-pan-red-600">{error}</Text>}
+          <Text className="font-display text-3xl font-bold text-primary">AfYO</Text>
+          <Text className="mt-3 text-base text-foreground">Enter your PIN</Text>
+          {error && <Text className="mt-2 text-sm text-destructive">{error}</Text>}
         </View>
 
         <PinPad value={pin} onChange={setPin} />
@@ -57,12 +65,15 @@ export default function PinUnlockScreen() {
           <Pressable
             onPress={async () => {
               const ok = await authenticateWithBiometrics();
-              if (ok) router.replace('/(tabs)');
+              if (ok) {
+                markPinPassed();
+                router.replace('/(tabs)');
+              }
             }}
             className="mt-6 flex-row items-center gap-2"
           >
-            <Ionicons name="finger-print" size={20} color="#0369a1" />
-            <Text className="text-sm font-medium text-pan-blue-600">Use biometrics</Text>
+            <Ionicons name="finger-print" size={20} color={colors.primary} />
+            <Text className="text-sm font-medium text-primary">Use biometrics</Text>
           </Pressable>
         )}
 
@@ -73,7 +84,7 @@ export default function PinUnlockScreen() {
           }}
           className="mt-12"
         >
-          <Text className="text-sm text-gray-500">Sign out</Text>
+          <Text className="text-sm text-muted-foreground">Sign out</Text>
         </Pressable>
       </View>
     </SafeAreaView>

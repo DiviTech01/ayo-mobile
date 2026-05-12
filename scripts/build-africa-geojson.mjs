@@ -6,7 +6,7 @@ import * as topojson from 'topojson-client';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
-const countriesPath = path.join(root, 'node_modules/world-atlas/countries-50m.json');
+const countriesPath = path.join(root, 'node_modules/world-atlas/countries-110m.json');
 const raw = JSON.parse(fs.readFileSync(countriesPath, 'utf8'));
 
 const ISO_NUMERIC_TO_ISO3 = {

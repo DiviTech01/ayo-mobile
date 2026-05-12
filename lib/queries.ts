@@ -1,5 +1,15 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import type { Country, YouthIndexScore } from './api';
+import { slugify } from './country-helpers';
+
+export interface CountryListItem extends Country {
+  slug: string;
+  ayemiScore: number;
+  ayemiRank: number | null;
+  ayemiTier: 'high' | 'medium' | 'low' | null;
+}
 
 export const qk = {
   countries: (params?: { region?: string; search?: string }) =>
@@ -38,7 +48,7 @@ export function useThemes() {
   });
 }
 
-export function useYouthIndexRankings(year?: number) {
+export function useYouthIndexRankings(year: number = 2025) {
   return useQuery({
     queryKey: qk.youthIndexRankings(year),
     queryFn: () => api.youthIndex.rankings(year),
@@ -80,10 +90,82 @@ export function useExperts(params?: { search?: string; specialization?: string; 
 
 export function useReports() {
   return useQuery({
-    queryKey: ['reports'] as const,
-    queryFn: () => api.reports.list(),
+    queryKey: ['documents', { type: 'PKPB_REPORT', limit: 500 }] as const,
+    queryFn: () => api.documents.list({ type: 'PKPB_REPORT', limit: 500 }),
     staleTime: 5 * 60_000,
   });
+}
+
+export function useDocuments(params?: { countryId?: string; type?: 'PKPB_REPORT' | 'POLICY_BRIEF' | 'RESEARCH_PAPER' | 'PRESENTATION' | 'OTHER'; limit?: number }) {
+  return useQuery({
+    queryKey: ['documents', params ?? {}] as const,
+    queryFn: () => api.documents.list(params),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function usePlatformStats() {
+  return useQuery({
+    queryKey: ['platform', 'stats'] as const,
+    queryFn: () => api.platform.stats(),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useAnomalies(year?: number) {
+  return useQuery({
+    queryKey: ['insights', 'anomalies', year] as const,
+    queryFn: () => api.insights.anomalies(year),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useCorrelations(themeId?: string) {
+  return useQuery({
+    queryKey: ['insights', 'correlations', themeId] as const,
+    queryFn: () => api.insights.correlations(themeId),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useCountryReportOverlay(countryRef: string | undefined) {
+  return useQuery({
+    queryKey: ['country-report', countryRef] as const,
+    queryFn: () => api.countryReports.get(countryRef!),
+    enabled: !!countryRef,
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useCountryDirectory(year: number = 2025) {
+  const countriesQ = useCountries();
+  const rankingsQ = useYouthIndexRankings(year);
+
+  const items = useMemo<CountryListItem[]>(() => {
+    const countries = Array.isArray(countriesQ.data) ? countriesQ.data : [];
+    const rankings = Array.isArray(rankingsQ.data) ? rankingsQ.data : [];
+    const byId = new Map<string, YouthIndexScore>(rankings.map((r) => [r.countryId, r]));
+    return countries.map((c) => {
+      const r = byId.get(c.id);
+      return {
+        ...c,
+        slug: slugify(c.name),
+        ayemiScore: r ? Math.round(r.overallScore) : 0,
+        ayemiRank: r?.rank ?? null,
+        ayemiTier: r?.tier ?? null,
+      };
+    });
+  }, [countriesQ.data, rankingsQ.data]);
+
+  return {
+    items,
+    isLoading: countriesQ.isLoading || rankingsQ.isLoading,
+    error: countriesQ.error ?? rankingsQ.error,
+    refetch: () => {
+      countriesQ.refetch();
+      rankingsQ.refetch();
+    },
+  };
 }
 
 export function useIndicators(themeId?: string) {

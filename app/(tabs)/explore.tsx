@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { AfricaMap } from '@/components/AfricaMap';
-import { listCountries, getCountryReport } from '@/data/countryReports';
+import { useCountryDirectory } from '@/lib/queries';
 import {
   flagFromIso3,
   REGIONS,
@@ -12,39 +12,53 @@ import {
   tierColor,
   type Region,
 } from '@/lib/country-helpers';
+import { useThemeColors } from '@/lib/theme-colors';
+import { tapLight, tapSelection } from '@/lib/haptics';
 
 type RegionFilter = Region | 'All';
 
+const REGION_DOTS: Record<string, string> = {
+  North: 'hsl(36, 100%, 65%)',
+  West: 'hsl(142, 76%, 66%)',
+  East: 'hsl(199, 93%, 67%)',
+  Central: 'hsl(0, 90%, 71%)',
+  Southern: 'hsl(280, 65%, 70%)',
+};
+
 export default function ExploreScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const [regionFilter, setRegionFilter] = useState<RegionFilter>('All');
   const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
+
+  const directory = useCountryDirectory();
 
   const byIso3 = useMemo(() => {
     const m = new Map<
       string,
       { country: string; slug: string; iso3: string; region: Region; score: number }
     >();
-    listCountries().forEach((c) => {
-      const r = getCountryReport(c.slug);
-      m.set(c.iso3, {
-        country: c.country,
+    directory.items.forEach((c) => {
+      const iso3 = c.iso3Code;
+      if (!iso3) return;
+      m.set(iso3, {
+        country: c.name,
         slug: c.slug,
-        iso3: c.iso3,
+        iso3,
         region: c.region as Region,
-        score: r?.ayemiScore ?? 0,
+        score: c.ayemiScore,
       });
     });
     return m;
-  }, []);
+  }, [directory.items]);
 
   const selected = selectedIso3 ? byIso3.get(selectedIso3) : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <View className="px-5 pb-2 pt-4">
-        <Text className="text-2xl font-bold text-gray-900">Explore Africa</Text>
-        <Text className="mt-0.5 text-sm text-gray-500">
+        <Text className="font-display text-2xl font-bold text-foreground">Explore Africa</Text>
+        <Text className="mt-0.5 text-sm text-muted-foreground">
           Tap any country to see its AYEMI score
         </Text>
 
@@ -56,14 +70,20 @@ export default function ExploreScreen() {
           <FilterChip
             label="All"
             active={regionFilter === 'All'}
-            onPress={() => setRegionFilter('All')}
+            onPress={() => {
+              tapSelection();
+              setRegionFilter('All');
+            }}
           />
           {REGIONS.map((r) => (
             <FilterChip
               key={r}
               label={REGION_ABBR[r]}
               active={regionFilter === r}
-              onPress={() => setRegionFilter(r)}
+              onPress={() => {
+                tapSelection();
+                setRegionFilter(r);
+              }}
             />
           ))}
         </ScrollView>
@@ -77,24 +97,26 @@ export default function ExploreScreen() {
         />
 
         <View className="mt-3 flex-row flex-wrap gap-2">
-          <Legend dot="#fcd34d" label="North" />
-          <Legend dot="#86efac" label="West" />
-          <Legend dot="#7dd3fc" label="East" />
-          <Legend dot="#fca5a5" label="Central" />
-          <Legend dot="#d8b4fe" label="Southern" />
+          <Legend dot={REGION_DOTS.North} label="North" />
+          <Legend dot={REGION_DOTS.West} label="West" />
+          <Legend dot={REGION_DOTS.East} label="East" />
+          <Legend dot={REGION_DOTS.Central} label="Central" />
+          <Legend dot={REGION_DOTS.Southern} label="Southern" />
         </View>
       </View>
 
       {selected ? (
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl border-t border-gray-200 bg-white px-5 pb-6 pt-4 shadow-2xl">
+        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl border-t border-border bg-card px-5 pb-6 pt-4 shadow-2xl">
           <View className="mb-2 items-center">
-            <View className="h-1 w-10 rounded-full bg-gray-200" />
+            <View className="h-1 w-10 rounded-full bg-muted" />
           </View>
           <View className="flex-row items-start">
             <Text className="text-5xl">{flagFromIso3(selected.iso3)}</Text>
             <View className="ml-3 flex-1">
-              <Text className="text-xl font-bold text-gray-900">{selected.country}</Text>
-              <Text className="text-xs text-gray-500">{selected.region}</Text>
+              <Text className="font-display text-xl font-bold text-foreground">
+                {selected.country}
+              </Text>
+              <Text className="text-xs text-muted-foreground">{selected.region}</Text>
               <View className="mt-2 flex-row items-center gap-2">
                 <View
                   className={`rounded-full px-2 py-0.5 ${tierColor(selected.score).bg}`}
@@ -105,8 +127,8 @@ export default function ExploreScreen() {
                     {tierColor(selected.score).label}
                   </Text>
                 </View>
-                <Text className="text-base font-bold tabular-nums text-gray-900">
-                  AYEMI {selected.score}
+                <Text className="text-base font-bold tabular-nums text-foreground">
+                  AYEMI {selected.score || '—'}
                 </Text>
               </View>
             </View>
@@ -115,23 +137,26 @@ export default function ExploreScreen() {
               onPress={() => setSelectedIso3(null)}
               className="p-1"
             >
-              <Ionicons name="close" size={20} color="#6b7280" />
+              <Ionicons name="close" size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
 
           <Pressable
-            onPress={() =>
+            onPress={() => {
+              tapLight();
               router.push(
                 {
                   pathname: '/country/[slug]',
                   params: { slug: selected.slug },
                 } as unknown as Href,
-              )
-            }
-            className="mt-4 flex-row items-center justify-center gap-1.5 rounded-xl bg-pan-blue-600 py-3"
+              );
+            }}
+            className="mt-4 flex-row items-center justify-center gap-1.5 rounded-xl bg-primary py-3 active:opacity-80"
           >
-            <Text className="text-base font-semibold text-white">View report card</Text>
-            <Ionicons name="arrow-forward" size={16} color="white" />
+            <Text className="text-base font-semibold text-primary-foreground">
+              View report card
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
           </Pressable>
         </View>
       ) : null}
@@ -152,11 +177,13 @@ function FilterChip({
     <Pressable
       onPress={onPress}
       className={`rounded-full px-3.5 py-1.5 ${
-        active ? 'bg-pan-blue-600' : 'bg-white border border-gray-200'
+        active ? 'bg-primary' : 'border border-border bg-card'
       }`}
     >
       <Text
-        className={`text-xs font-medium ${active ? 'text-white' : 'text-gray-700'}`}
+        className={`text-xs font-medium ${
+          active ? 'text-primary-foreground' : 'text-foreground'
+        }`}
       >
         {label}
       </Text>
@@ -168,7 +195,7 @@ function Legend({ dot, label }: { dot: string; label: string }) {
   return (
     <View className="flex-row items-center gap-1.5">
       <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: dot }} />
-      <Text className="text-[11px] text-gray-600">{label}</Text>
+      <Text className="text-[11px] text-muted-foreground">{label}</Text>
     </View>
   );
 }

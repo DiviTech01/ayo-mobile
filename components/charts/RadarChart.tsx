@@ -1,7 +1,8 @@
 import { View } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
-import { colorFor } from './colors';
+import { useChartPalette } from './colors';
 import { Legend } from './BarChart';
+import { useThemeColors } from '@/lib/theme-colors';
 
 type Datum = { dimension: string } & Record<string, string | number>;
 
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export function RadarChart({ data, series, width = 320, height = 240 }: Props) {
+  const palette = useChartPalette();
+  const colors = useThemeColors();
   const cx = width / 2;
   const cy = height / 2 - 6;
   const radius = Math.min(width, height) / 2 - 32;
@@ -46,7 +49,7 @@ export function RadarChart({ data, series, width = 320, height = 240 }: Props) {
             <G key={i}>
               <Path
                 d={`M ${points.split(' ').join(' L ')} Z`}
-                stroke="#e5e7eb"
+                stroke={colors.border}
                 strokeWidth={1}
                 fill="none"
               />
@@ -63,7 +66,7 @@ export function RadarChart({ data, series, width = 320, height = 240 }: Props) {
               y1={cy}
               x2={cx + Math.cos(a) * radius}
               y2={cy + Math.sin(a) * radius}
-              stroke="#e5e7eb"
+              stroke={colors.border}
               strokeWidth={1}
             />
           );
@@ -75,17 +78,18 @@ export function RadarChart({ data, series, width = 320, height = 240 }: Props) {
             points
               .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
               .join(' ') + ' Z';
+          const seriesColor = palette[si % palette.length];
           return (
             <G key={s}>
               <Path
                 d={path}
-                fill={colorFor(si)}
+                fill={seriesColor}
                 fillOpacity={0.15}
-                stroke={colorFor(si)}
+                stroke={seriesColor}
                 strokeWidth={1.5}
               />
               {points.map((p, i) => (
-                <Circle key={i} cx={p.x} cy={p.y} r={2} fill={colorFor(si)} />
+                <Circle key={i} cx={p.x} cy={p.y} r={2} fill={seriesColor} />
               ))}
             </G>
           );
@@ -102,7 +106,7 @@ export function RadarChart({ data, series, width = 320, height = 240 }: Props) {
               x={x}
               y={y}
               fontSize={9}
-              fill="#6b7280"
+              fill={colors.mutedForeground}
               textAnchor="middle"
             >
               {d.dimension}

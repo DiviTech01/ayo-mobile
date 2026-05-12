@@ -5,9 +5,11 @@ import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useExperts } from '@/lib/queries';
 import type { Expert } from '@/lib/api';
+import { useThemeColors } from '@/lib/theme-colors';
 
 export default function ExpertsScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const [search, setSearch] = useState('');
   const q = useExperts();
 
@@ -19,55 +21,53 @@ export default function ExpertsScreen() {
       (e) =>
         e.name.toLowerCase().includes(qq) ||
         e.organization.toLowerCase().includes(qq) ||
-        e.country.toLowerCase().includes(qq) ||
-        e.specialization.some((s) => s.toLowerCase().includes(qq)),
+        (e.country?.name?.toLowerCase().includes(qq) ?? false) ||
+        (e.specializations ?? []).some((s) => s.toLowerCase().includes(qq)),
     );
   }, [q.data, search]);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-2 py-2">
+      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
         <Pressable
           onPress={() => router.back()}
           hitSlop={8}
           className="flex-row items-center gap-1 px-2 py-1.5"
         >
-          <Ionicons name="chevron-back" size={22} color="#111827" />
-          <Text className="text-sm font-medium text-gray-900">Back</Text>
+          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+          <Text className="text-sm font-medium text-foreground">Back</Text>
         </Pressable>
-        <Text className="text-base font-semibold text-gray-900">Experts</Text>
+        <Text className="font-display text-base font-semibold text-foreground">Experts</Text>
         <View className="w-12" />
       </View>
 
       <ScrollView contentContainerClassName="px-5 pb-12">
         <View className="pt-4">
-          <Text className="text-xs uppercase tracking-wider text-gray-500">
-            Network
-          </Text>
-          <Text className="mt-1 text-2xl font-bold text-gray-900">
+          <Text className="text-xs uppercase tracking-wider text-muted-foreground">Network</Text>
+          <Text className="mt-1 font-display text-2xl font-bold text-foreground">
             Expert directory
           </Text>
-          <Text className="mt-1 text-sm text-gray-500">
+          <Text className="mt-1 text-sm text-muted-foreground">
             Researchers, policy advocates, and youth-development practitioners across the continent.
           </Text>
         </View>
 
-        <View className="mt-4 flex-row items-center rounded-xl bg-white px-3 py-2.5">
-          <Ionicons name="search" size={18} color="#9ca3af" />
+        <View className="mt-4 flex-row items-center rounded-xl border border-border bg-card px-3 py-2.5">
+          <Ionicons name="search" size={18} color={colors.mutedForeground} />
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder="Search by name, org, or specialization"
-            placeholderTextColor="#9ca3af"
-            className="ml-2 flex-1 text-base text-gray-900"
+            placeholderTextColor={colors.mutedForeground}
+            className="ml-2 flex-1 text-base text-foreground"
             autoCorrect={false}
             autoCapitalize="none"
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color="#9ca3af" />
+              <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
             </Pressable>
           )}
         </View>
@@ -91,35 +91,38 @@ export default function ExpertsScreen() {
 }
 
 function ExpertCard({ expert }: { expert: Expert }) {
+  const colors = useThemeColors();
+  const countryLabel = expert.country?.name ?? '';
+  const specializations = expert.specializations ?? [];
   return (
-    <View className="rounded-2xl border border-gray-200 bg-white p-4">
+    <View className="rounded-2xl border border-border bg-card p-4">
       <View className="flex-row items-start gap-3">
         <Avatar uri={expert.photoUrl} name={expert.name} />
         <View className="flex-1">
           <View className="flex-row items-center gap-1.5">
-            <Text className="text-base font-semibold text-gray-900">{expert.name}</Text>
+            <Text className="text-base font-semibold text-foreground">{expert.name}</Text>
             {expert.verified && (
-              <Ionicons name="checkmark-circle" size={14} color="#0284c7" />
+              <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
             )}
           </View>
-          <Text className="text-xs text-gray-700">{expert.title}</Text>
-          <Text className="mt-0.5 text-[11px] text-gray-500">
-            {expert.organization} · {expert.country}
+          <Text className="text-xs text-foreground">{expert.title}</Text>
+          <Text className="mt-0.5 text-[11px] text-muted-foreground">
+            {[expert.organization, countryLabel].filter(Boolean).join(' · ')}
           </Text>
         </View>
       </View>
 
       {expert.bio ? (
-        <Text className="mt-3 text-xs leading-5 text-gray-600" numberOfLines={3}>
+        <Text className="mt-3 text-xs leading-5 text-muted-foreground" numberOfLines={3}>
           {expert.bio}
         </Text>
       ) : null}
 
-      {expert.specialization.length > 0 ? (
+      {specializations.length > 0 ? (
         <View className="mt-3 flex-row flex-wrap gap-1.5">
-          {expert.specialization.slice(0, 5).map((s) => (
-            <View key={s} className="rounded-full bg-pan-blue-50 px-2 py-0.5">
-              <Text className="text-[10px] font-medium text-pan-blue-700">{s}</Text>
+          {specializations.slice(0, 5).map((s) => (
+            <View key={s} className="rounded-full bg-accent/15 px-2 py-0.5">
+              <Text className="text-[10px] font-medium text-accent">{s}</Text>
             </View>
           ))}
         </View>
@@ -128,14 +131,14 @@ function ExpertCard({ expert }: { expert: Expert }) {
   );
 }
 
-function Avatar({ uri, name }: { uri?: string; name: string }) {
+function Avatar({ uri, name }: { uri?: string | null; name: string }) {
   if (uri) {
-    return <Image source={{ uri }} className="h-12 w-12 rounded-full bg-gray-100" />;
+    return <Image source={{ uri }} className="h-12 w-12 rounded-full bg-muted" />;
   }
   const initial = name.charAt(0).toUpperCase();
   return (
-    <View className="h-12 w-12 items-center justify-center rounded-full bg-pan-blue-100">
-      <Text className="text-base font-bold text-pan-blue-700">{initial}</Text>
+    <View className="h-12 w-12 items-center justify-center rounded-full bg-accent/15">
+      <Text className="text-base font-bold text-accent">{initial}</Text>
     </View>
   );
 }
@@ -144,13 +147,13 @@ function SkeletonList() {
   return (
     <View className="mt-4 gap-2.5">
       {[1, 2, 3].map((i) => (
-        <View key={i} className="rounded-2xl border border-gray-200 bg-white p-4">
+        <View key={i} className="rounded-2xl border border-border bg-card p-4">
           <View className="flex-row items-start gap-3">
-            <View className="h-12 w-12 rounded-full bg-gray-100" />
+            <View className="h-12 w-12 rounded-full bg-muted" />
             <View className="flex-1">
-              <View className="h-3 w-32 rounded-full bg-gray-100" />
-              <View className="mt-2 h-2.5 w-24 rounded-full bg-gray-50" />
-              <View className="mt-1.5 h-2.5 w-40 rounded-full bg-gray-50" />
+              <View className="h-3 w-32 rounded-full bg-muted" />
+              <View className="mt-2 h-2.5 w-24 rounded-full bg-muted opacity-60" />
+              <View className="mt-1.5 h-2.5 w-40 rounded-full bg-muted opacity-60" />
             </View>
           </View>
         </View>
@@ -160,22 +163,24 @@ function SkeletonList() {
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
+  const colors = useThemeColors();
   return (
-    <View className="mt-8 items-center rounded-2xl border border-gray-200 bg-white p-6">
-      <Ionicons name="cloud-offline-outline" size={32} color="#9ca3af" />
-      <Text className="mt-2 text-sm text-gray-700">Couldn't load experts</Text>
-      <Pressable onPress={onRetry} className="mt-3 rounded-lg bg-pan-blue-600 px-4 py-2">
-        <Text className="text-sm font-medium text-white">Try again</Text>
+    <View className="mt-8 items-center rounded-2xl border border-border bg-card p-6">
+      <Ionicons name="cloud-offline-outline" size={32} color={colors.mutedForeground} />
+      <Text className="mt-2 text-sm text-foreground">Couldn&rsquo;t load experts</Text>
+      <Pressable onPress={onRetry} className="mt-3 rounded-lg bg-primary px-4 py-2">
+        <Text className="text-sm font-medium text-primary-foreground">Try again</Text>
       </Pressable>
     </View>
   );
 }
 
 function EmptyState({ search }: { search: string }) {
+  const colors = useThemeColors();
   return (
     <View className="mt-8 items-center py-10">
-      <Ionicons name="people-outline" size={32} color="#d1d5db" />
-      <Text className="mt-2 text-sm text-gray-500">
+      <Ionicons name="people-outline" size={32} color={colors.mutedForeground} />
+      <Text className="mt-2 text-sm text-muted-foreground">
         {search ? `No experts match "${search}"` : 'No experts in the directory yet.'}
       </Text>
     </View>

@@ -19,6 +19,18 @@ const TIER_TEXT: Record<AyemiTier, string> = {
   Fulfilling: 'text-pan-green-700',
 };
 
+const TIER_INNER_LABEL: Record<AyemiTier, string> = {
+  Critical: 'text-pan-red-700',
+  Developing: 'text-pan-gold-800',
+  Fulfilling: 'text-pan-green-700',
+};
+
+const TIER_INNER_NUMBER: Record<AyemiTier, string> = {
+  Critical: 'text-pan-red-900',
+  Developing: 'text-pan-gold-900',
+  Fulfilling: 'text-pan-green-900',
+};
+
 type Props = { score: number; tier: AyemiTier; size?: number };
 
 export function AyemiGauge({ score, tier, size = 140 }: Props) {
@@ -28,11 +40,15 @@ export function AyemiGauge({ score, tier, size = 140 }: Props) {
         className={`items-center justify-center rounded-full border-[6px] ${TIER_RING[tier]} ${TIER_BG[tier]}`}
         style={{ width: size, height: size }}
       >
-        <Text className="text-[10px] font-medium uppercase tracking-wider text-gray-500">
+        <Text
+          className={`text-[10px] font-medium uppercase tracking-wider ${TIER_INNER_LABEL[tier]}`}
+        >
           AYEMI Score
         </Text>
-        <Text className="text-5xl font-bold text-gray-900 tabular-nums">{score}</Text>
-        <Text className="text-xs text-gray-500">out of 100</Text>
+        <Text className={`font-display text-5xl font-bold tabular-nums ${TIER_INNER_NUMBER[tier]}`}>
+          {score}
+        </Text>
+        <Text className={`text-xs ${TIER_INNER_LABEL[tier]}`}>out of 100</Text>
       </View>
       <View className={`mt-3 rounded-full px-3 py-1 ${TIER_BG[tier]}`}>
         <Text className={`text-xs font-semibold uppercase tracking-wide ${TIER_TEXT[tier]}`}>

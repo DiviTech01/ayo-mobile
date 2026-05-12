@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -10,64 +11,79 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { listCountries, getCountryReport } from '@/data/countryReports';
-import { flagFromIso3, type Region } from '@/lib/country-helpers';
+import { useCountryDirectory, useYouthIndexRankings } from '@/lib/queries';
+import type { CountryListItem } from '@/lib/queries';
+import { useThemeColors } from '@/lib/theme-colors';
+import { tapSelection } from '@/lib/haptics';
+import { OpenOnWebLink } from '@/components/OpenOnWebLink';
+import { webLinks } from '@/lib/web-links';
+import type { YouthIndexScore } from '@/lib/api';
 
-const TOPIC_LIST = [
-  'Youth Poverty',
-  'Female Unemployment',
-  'Informality',
-  'Literacy',
-  'Tertiary GER',
-  'Internet Access',
-  'Political Seats',
-  'Digital Identity',
-  'Brain Drain',
-  'GYDI Rank',
-  'HIV Youth Share',
-  'Mental Health',
-] as const;
+type DimensionKey = 'overallScore' | 'educationScore' | 'employmentScore' | 'healthScore' | 'civicScore' | 'innovationScore';
 
-type Topic = (typeof TOPIC_LIST)[number];
+const DIMENSIONS: { key: DimensionKey; label: string }[] = [
+  { key: 'overallScore', label: 'AYEMI overall' },
+  { key: 'educationScore', label: 'Education' },
+  { key: 'employmentScore', label: 'Employment' },
+  { key: 'healthScore', label: 'Health' },
+  { key: 'civicScore', label: 'Civic' },
+  { key: 'innovationScore', label: 'Innovation' },
+];
 
-const SEED_COUNTRIES = ['nigeria', 'kenya', 'ghana', 'south-africa'];
+const DEFAULT_COUNTRIES = ['Nigeria', 'Kenya', 'Ghana', 'South Africa'];
 
 export default function CompareScreen() {
   const router = useRouter();
-  const [selectedSlugs, setSelectedSlugs] = useState<string[]>(SEED_COUNTRIES);
-  const [topic, setTopic] = useState<Topic>('Youth Poverty');
+  const colors = useThemeColors();
+  const directory = useCountryDirectory();
+  const rankingsQ = useYouthIndexRankings();
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [dimension, setDimension] = useState<DimensionKey>('overallScore');
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const allCountries = useMemo(() => listCountries(), []);
+  const rankings = useMemo<YouthIndexScore[]>(
+    () => (Array.isArray(rankingsQ.data) ? rankingsQ.data : []),
+    [rankingsQ.data],
+  );
+
+  useEffect(() => {
+    if (selectedIds.length > 0 || directory.items.length === 0) return;
+    const ids = DEFAULT_COUNTRIES
+      .map((name) => directory.items.find((c) => c.name === name)?.id)
+      .filter((id): id is string => !!id);
+    if (ids.length > 0) setSelectedIds(ids);
+  }, [directory.items, selectedIds.length]);
 
   const rows = useMemo(() => {
-    return selectedSlugs
-      .map((slug) => {
-        const meta = allCountries.find((c) => c.slug === slug);
-        const report = getCountryReport(slug);
-        if (!meta || !report) return null;
-        const ind = report.indicators.find((i) => i.topic === topic);
-        if (!ind) return null;
+    const byId = new Map(rankings.map((r) => [r.countryId, r]));
+    return selectedIds
+      .map((id) => {
+        const c = directory.items.find((x) => x.id === id);
+        const r = byId.get(id);
+        if (!c) return null;
+        const value = r ? Number(r[dimension]) : 0;
         return {
-          slug,
-          country: meta.country,
-          iso3: meta.iso3,
-          region: meta.region as Region,
-          value: ind.value,
-          numeric: ind.barPct,
-          severity: ind.severity,
+          id,
+          name: c.name,
+          flag: c.flagEmoji ?? '🏳️',
+          region: c.region,
+          value: Number.isFinite(value) ? value : 0,
+          rank: r?.rank ?? null,
+          tier: r?.tier ?? null,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
-      .sort((a, b) => b.numeric - a.numeric);
-  }, [allCountries, selectedSlugs, topic]);
+      .sort((a, b) => b.value - a.value);
+  }, [selectedIds, rankings, directory.items, dimension]);
 
-  const max = rows.length > 0 ? Math.max(...rows.map((r) => r.numeric), 1) : 1;
+  const max = rows.length > 0 ? Math.max(...rows.map((r) => r.value), 1) : 1;
 
   const onShare = async () => {
+    const dimLabel = DIMENSIONS.find((d) => d.key === dimension)?.label ?? 'AYEMI';
     const lines = [
-      `${topic} — comparison via AfYO`,
-      ...rows.map((r, i) => `${i + 1}. ${r.country}: ${r.value}`),
+      `${dimLabel} — comparison via AfYO`,
+      ...rows.map((r, i) => `${i + 1}. ${r.name}: ${r.value.toFixed(1)}`),
       '',
       'African Youth Observatory · PACSDA',
     ];
@@ -78,98 +94,103 @@ export default function CompareScreen() {
     }
   };
 
+  const isLoading = directory.isLoading || rankingsQ.isLoading;
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-2 py-2">
+      <View className="flex-row items-center justify-between border-b border-border bg-card px-2 py-2">
         <Pressable
           onPress={() => router.back()}
           hitSlop={8}
           className="flex-row items-center gap-1 px-2 py-1.5"
         >
-          <Ionicons name="chevron-back" size={22} color="#111827" />
-          <Text className="text-sm font-medium text-gray-900">Back</Text>
+          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+          <Text className="text-sm font-medium text-foreground">Back</Text>
         </Pressable>
-        <Text className="text-base font-semibold text-gray-900">Compare</Text>
+        <Text className="font-display text-base font-semibold text-foreground">Compare</Text>
         <Pressable onPress={onShare} hitSlop={8} className="px-3 py-1.5">
-          <Ionicons name="share-outline" size={20} color="#111827" />
+          <Ionicons name="share-outline" size={20} color={colors.foreground} />
         </Pressable>
       </View>
 
       <ScrollView contentContainerClassName="p-5 pb-12">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          Indicator
+        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Dimension
         </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerClassName="mt-2 gap-2 pr-5"
         >
-          {TOPIC_LIST.map((t) => (
+          {DIMENSIONS.map((d) => (
             <Pressable
-              key={t}
-              onPress={() => setTopic(t)}
+              key={d.key}
+              onPress={() => {
+                tapSelection();
+                setDimension(d.key);
+              }}
               className={`rounded-full px-3 py-1.5 ${
-                topic === t ? 'bg-pan-blue-600' : 'bg-white border border-gray-200'
+                dimension === d.key ? 'bg-primary' : 'border border-border bg-card'
               }`}
             >
               <Text
                 className={`text-xs font-medium ${
-                  topic === t ? 'text-white' : 'text-gray-700'
+                  dimension === d.key ? 'text-primary-foreground' : 'text-foreground'
                 }`}
               >
-                {t}
+                {d.label}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <View className="mt-5 flex-row items-center justify-between">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Countries · {selectedSlugs.length}
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Countries · {selectedIds.length}
           </Text>
           <Pressable
             onPress={() => setPickerOpen(true)}
-            className="flex-row items-center gap-1 rounded-full bg-white px-3 py-1 border border-gray-200"
+            className="flex-row items-center gap-1 rounded-full border border-border bg-card px-3 py-1"
           >
-            <Ionicons name="add" size={14} color="#0369a1" />
-            <Text className="text-xs font-semibold text-pan-blue-700">Edit</Text>
+            <Ionicons name="add" size={14} color={colors.primary} />
+            <Text className="text-xs font-semibold text-primary">Edit</Text>
           </Pressable>
         </View>
 
-        <View className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">
-          {rows.length === 0 ? (
+        <View className="mt-3 rounded-2xl border border-border bg-card p-4">
+          {isLoading && rows.length === 0 ? (
             <View className="items-center py-6">
-              <Text className="text-sm text-gray-500">No countries selected.</Text>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : rows.length === 0 ? (
+            <View className="items-center py-6">
+              <Text className="text-sm text-muted-foreground">No countries selected.</Text>
             </View>
           ) : (
             <View className="gap-4">
               {rows.map((r, i) => {
-                const widthPct = Math.max(2, (r.numeric / max) * 100);
+                const widthPct = Math.max(2, (r.value / max) * 100);
                 const barColor =
-                  r.severity === 'red'
-                    ? 'bg-pan-red-500'
-                    : r.severity === 'gold'
-                    ? 'bg-pan-gold-500'
-                    : r.severity === 'green'
+                  r.value >= 67
                     ? 'bg-pan-green-500'
-                    : 'bg-pan-blue-500';
+                    : r.value >= 34
+                    ? 'bg-pan-gold-500'
+                    : 'bg-pan-red-500';
                 return (
-                  <View key={r.slug}>
+                  <View key={r.id}>
                     <View className="mb-1.5 flex-row items-baseline justify-between">
                       <View className="flex-row items-center gap-2">
-                        <Text className="w-5 text-sm text-gray-400">{i + 1}</Text>
-                        <Text className="text-base">{flagFromIso3(r.iso3)}</Text>
-                        <Text className="text-sm font-medium text-gray-900">
-                          {r.country}
-                        </Text>
+                        <Text className="w-5 text-sm text-muted-foreground">{i + 1}</Text>
+                        <Text className="text-base">{r.flag}</Text>
+                        <Text className="text-sm font-medium text-foreground">{r.name}</Text>
                       </View>
-                      <Text className="text-sm font-bold tabular-nums text-gray-900">
-                        {r.value}
+                      <Text className="text-sm font-bold tabular-nums text-foreground">
+                        {r.value.toFixed(1)}
                       </Text>
                     </View>
-                    <View className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <View className="h-2 overflow-hidden rounded-full bg-muted">
                       <View
                         className={`h-full rounded-full ${barColor}`}
                         style={{ width: `${widthPct}%` }}
@@ -182,17 +203,20 @@ export default function CompareScreen() {
           )}
         </View>
 
-        <Text className="mt-4 text-[11px] leading-4 text-gray-500">
-          Bars sized relative to the highest value among selected countries. Color
-          reflects severity tier from each country's most recent report.
+        <Text className="mt-4 text-[11px] leading-4 text-muted-foreground">
+          Bars sized relative to the highest value among selected countries. Scores from
+          the {new Date().getFullYear() - 1} AYEMI rankings (0–100, higher is better).
         </Text>
+
+        <OpenOnWebLink href={webLinks.compare} />
       </ScrollView>
 
       <CountryPickerModal
         open={pickerOpen}
-        selected={selectedSlugs}
+        countries={directory.items}
+        selected={selectedIds}
         onClose={() => setPickerOpen(false)}
-        onChange={setSelectedSlugs}
+        onChange={setSelectedIds}
       />
     </SafeAreaView>
   );
@@ -200,56 +224,58 @@ export default function CompareScreen() {
 
 function CountryPickerModal({
   open,
+  countries,
   selected,
   onClose,
   onChange,
 }: {
   open: boolean;
+  countries: CountryListItem[];
   selected: string[];
   onClose: () => void;
   onChange: (next: string[]) => void;
 }) {
-  const all = useMemo(() => listCountries(), []);
-
-  const toggle = (slug: string) => {
-    if (selected.includes(slug)) {
-      onChange(selected.filter((s) => s !== slug));
+  const toggle = (id: string) => {
+    if (selected.includes(id)) {
+      onChange(selected.filter((s) => s !== id));
     } else {
       if (selected.length >= 6) return;
-      onChange([...selected, slug]);
+      onChange([...selected, id]);
     }
   };
 
+  const sorted = useMemo(() => [...countries].sort((a, b) => a.name.localeCompare(b.name)), [countries]);
+
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-row items-center justify-between border-b border-gray-100 px-4 py-3">
-          <Text className="text-base font-semibold text-gray-900">
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
+          <Text className="font-display text-base font-semibold text-foreground">
             Pick countries · max 6
           </Text>
           <Pressable onPress={onClose} hitSlop={8}>
-            <Text className="text-sm font-semibold text-pan-blue-600">Done</Text>
+            <Text className="text-sm font-semibold text-primary">Done</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerClassName="p-4">
           <View className="flex-row flex-wrap gap-2">
-            {all.map((c) => {
-              const active = selected.includes(c.slug);
+            {sorted.map((c) => {
+              const active = selected.includes(c.id);
               return (
                 <Pressable
-                  key={c.slug}
-                  onPress={() => toggle(c.slug)}
+                  key={c.id}
+                  onPress={() => toggle(c.id)}
                   className={`flex-row items-center gap-1.5 rounded-full px-3 py-2 ${
-                    active ? 'bg-pan-blue-600' : 'bg-gray-100'
+                    active ? 'bg-primary' : 'bg-muted'
                   }`}
                 >
-                  <Text className="text-base">{flagFromIso3(c.iso3)}</Text>
+                  <Text className="text-base">{c.flagEmoji ?? '🏳️'}</Text>
                   <Text
                     className={`text-sm font-medium ${
-                      active ? 'text-white' : 'text-gray-700'
+                      active ? 'text-primary-foreground' : 'text-foreground'
                     }`}
                   >
-                    {c.country}
+                    {c.name}
                   </Text>
                 </Pressable>
               );

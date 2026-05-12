@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import africaGeo from '@/data/africa-geojson.json';
 import { geometryToPath, MAP_VIEW } from '@/lib/projection';
-import { listCountries } from '@/data/countryReports';
+import { useCountries } from '@/lib/queries';
 import type { Region } from '@/lib/country-helpers';
 
 const REGION_FILL: Record<Region, string> = {
@@ -36,11 +36,17 @@ type Props = {
 };
 
 export function AfricaMap({ selectedIso3, regionFilter = 'All', onCountryPress }: Props) {
+  const countriesQ = useCountries();
+
   const iso3ToRegion = useMemo(() => {
     const map = new Map<string, Region>();
-    listCountries().forEach((c) => map.set(c.iso3, c.region as Region));
+    const list = Array.isArray(countriesQ.data) ? countriesQ.data : [];
+    list.forEach((c) => {
+      const iso3 = c.iso3Code ?? (c as { isoCode3?: string }).isoCode3;
+      if (iso3) map.set(iso3, c.region as Region);
+    });
     return map;
-  }, []);
+  }, [countriesQ.data]);
 
   const paths = useMemo(() => {
     const features = (africaGeo as { features: Feature[] }).features;

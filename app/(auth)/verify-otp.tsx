@@ -11,12 +11,18 @@ import {
 } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { AuthHeader } from '@/components/AuthHeader';
+import { AmbientBackground } from '@/components/AmbientBackground';
+import { useThemeColors } from '@/lib/theme-colors';
+import { notifyError, notifySuccess } from '@/lib/haptics';
 
 const RESEND_COOLDOWN_S = 30;
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -50,10 +56,12 @@ export default function VerifyOtpScreen() {
     });
     setBusy(false);
     if (error) {
+      notifyError();
       setError(error.message);
       setCode('');
       return;
     }
+    notifySuccess();
     router.replace('/(tabs)');
   };
 
@@ -73,35 +81,41 @@ export default function VerifyOtpScreen() {
     const { error } = await supabase.auth.resend({ type: 'signup', email });
     setResending(false);
     if (error) {
+      notifyError();
       setError(error.message);
       return;
     }
+    notifySuccess();
     setInfo('A new code is on its way.');
     setCooldown(RESEND_COOLDOWN_S);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background">
+      <AmbientBackground />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
         <ScrollView
-          contentContainerClassName="flex-grow justify-center px-6 py-8"
+          contentContainerClassName="flex-grow px-6 pt-4 pb-10"
           keyboardShouldPersistTaps="handled"
         >
-          <View className="mb-10">
-            <Text className="text-3xl font-bold text-primary">AfYO</Text>
-            <Text className="mt-2 text-base text-gray-500">Verify your email</Text>
-          </View>
+          <AuthHeader
+            title="Verify your email"
+            subtitle={`We sent a 6-digit code to ${email ?? 'your email'}. Enter it to finish setting up your account.`}
+          />
 
-          <Text className="text-2xl font-semibold text-gray-900">Check your inbox</Text>
-          <Text className="mt-2 text-sm text-gray-500">
-            We sent a 6-digit code to{'\n'}
-            <Text className="font-medium text-gray-800">{email ?? 'your email'}</Text>
-          </Text>
+          <View className="mt-10">
+            <Pressable
+              onPress={() => inputRef.current?.focus()}
+              className="rounded-xl border border-border bg-muted px-4 py-5"
+            >
+              <Text className="text-center font-display text-3xl font-semibold tracking-[14px] text-foreground tabular-nums">
+                {code.padEnd(6, '•')}
+              </Text>
+            </Pressable>
 
-          <View className="mt-8">
             <TextInput
               ref={inputRef}
               value={code}
@@ -110,37 +124,45 @@ export default function VerifyOtpScreen() {
               autoComplete="one-time-code"
               textContentType="oneTimeCode"
               maxLength={6}
-              placeholder="000000"
-              placeholderTextColor="#d1d5db"
-              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-center text-3xl font-semibold tracking-[12px] text-gray-900"
+              style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }}
             />
 
-            {busy && (
-              <View className="mt-3 flex-row items-center justify-center">
-                <ActivityIndicator size="small" color="#0369a1" />
-                <Text className="ml-2 text-sm text-gray-500">Verifying…</Text>
+            {busy ? (
+              <View className="mt-4 flex-row items-center justify-center gap-2">
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text className="text-sm text-muted-foreground">Verifying…</Text>
               </View>
-            )}
+            ) : null}
 
-            {error && (
-              <View className="mt-3 rounded-lg bg-pan-red-50 px-3 py-2">
-                <Text className="text-sm text-pan-red-700">{error}</Text>
+            {error ? (
+              <View className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5">
+                <Text className="text-sm text-destructive">{error}</Text>
               </View>
-            )}
+            ) : null}
 
-            {info && !error && (
-              <View className="mt-3 rounded-lg bg-pan-green-50 px-3 py-2">
-                <Text className="text-sm text-pan-green-700">{info}</Text>
+            {info && !error ? (
+              <View className="mt-4 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5">
+                <Text className="text-sm text-primary">{info}</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           <View className="mt-8 items-center">
-            <Pressable onPress={onResend} disabled={cooldown > 0 || resending}>
+            <Pressable
+              onPress={onResend}
+              disabled={cooldown > 0 || resending}
+              hitSlop={6}
+              className="flex-row items-center gap-1.5"
+            >
+              <Ionicons
+                name="refresh-outline"
+                size={14}
+                color={cooldown > 0 || resending ? colors.mutedForeground : colors.primary}
+              />
               <Text
                 className={
                   cooldown > 0 || resending
-                    ? 'text-sm text-gray-400'
+                    ? 'text-sm text-muted-foreground'
                     : 'text-sm font-medium text-primary'
                 }
               >
@@ -154,9 +176,9 @@ export default function VerifyOtpScreen() {
           </View>
 
           <View className="mt-10 flex-row justify-center">
-            <Text className="text-sm text-gray-500">Wrong email? </Text>
+            <Text className="text-sm text-muted-foreground">Wrong email? </Text>
             <Link href="/(auth)/sign-up" asChild>
-              <Pressable>
+              <Pressable hitSlop={6}>
                 <Text className="text-sm font-semibold text-primary">Start over</Text>
               </Pressable>
             </Link>
