@@ -12,6 +12,7 @@ import {
   setBiometricEnabled,
   signOut,
 } from '@/lib/auth';
+import { PageHeader } from '@/components/PageHeader';
 import { useThemeColors } from '@/lib/theme-colors';
 
 export default function SettingsScreen() {
@@ -80,10 +81,14 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView contentContainerClassName="px-5 py-6">
-        <Text className="font-display text-2xl font-bold text-foreground">Settings</Text>
+      <ScrollView contentContainerClassName="pb-12">
+        <PageHeader
+          title="Settings"
+          description="Manage your account, security, and preferences."
+        />
 
-        <View className="mt-6 rounded-2xl border border-border bg-card p-5">
+        <View className="px-5 pt-5">
+        <View className="rounded-2xl border border-border bg-card p-5">
           <View className="flex-row items-center gap-4">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-primary/15">
               <Text className="text-2xl font-bold text-primary">
@@ -200,6 +205,7 @@ export default function SettingsScreen() {
         </Pressable>
 
         <Text className="mt-6 text-center text-xs text-muted-foreground">AfYO v1.0.0</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

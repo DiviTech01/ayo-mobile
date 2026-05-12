@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Hero } from '@/components/Hero';
 import { StatsStrip } from '@/components/widgets/StatsStrip';
 import { FeaturedData } from '@/components/widgets/FeaturedData';
+import { QuickInsights } from '@/components/widgets/QuickInsights';
+import { Partners } from '@/components/widgets/Partners';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapLight } from '@/lib/haptics';
 
@@ -73,6 +75,12 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
+
+        <View className="-mx-4 bg-muted/30 px-4 py-10">
+          <QuickInsights limit={3} year={2024} />
+        </View>
+
+        <Partners />
       </ScrollView>
     </SafeAreaView>
   );
