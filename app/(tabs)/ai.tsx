@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -27,43 +27,32 @@ import {
 import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapLight, notifyError } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const SUGGESTION_CARDS: { icon: IconName; title: string; prompt: string }[] = [
+const SUGGESTIONS: { icon: IconName; label: string; prompt: string }[] = [
   {
     icon: 'trending-up',
-    title: 'Youth Unemployment',
+    label: 'Youth unemployment trends',
     prompt:
       'What are youth unemployment trends across African regions? Which countries have improved the most?',
   },
   {
     icon: 'school',
-    title: 'Education Access',
+    label: 'Education access gaps',
     prompt:
       'Compare youth education enrollment rates across the 5 African regions and identify the key gaps.',
   },
   {
-    icon: 'heart',
-    title: 'Health Metrics',
-    prompt:
-      'Show key youth health indicators across Africa — HIV prevalence, child mortality, and healthcare access.',
-  },
-  {
     icon: 'trophy',
-    title: 'Top Performers',
+    label: 'Top Youth Index performers',
     prompt:
       'Which 10 countries rank highest on the African Youth Index and what drives their success?',
   },
   {
-    icon: 'globe-outline',
-    title: 'Regional Analysis',
-    prompt:
-      'Give me a regional breakdown of youth development indicators across all 5 African sub-regions.',
-  },
-  {
     icon: 'document-text',
-    title: 'Generate Report',
+    label: 'Generate a data report',
     prompt:
       'Generate a comprehensive structured report on African youth development with data tables, key findings, and recommendations.',
   },
@@ -71,6 +60,7 @@ const SUGGESTION_CARDS: { icon: IconName; title: string; prompt: string }[] = [
 
 export default function AskAIScreen() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [userId, setUserId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -97,15 +87,13 @@ export default function AskAIScreen() {
 
   const persist = (next: Conversation[]) => {
     setConversations(next);
-    if (userId) {
-      saveConversations(userId, next).catch(() => undefined);
-    }
+    if (userId) saveConversations(userId, next).catch(() => undefined);
   };
 
   const startNew = () => {
+    tapLight();
     const c = makeConversation();
-    const next = [c, ...conversations];
-    persist(next);
+    persist([c, ...conversations]);
     setActiveId(c.id);
     setDrawerOpen(false);
   };
@@ -144,7 +132,6 @@ export default function AskAIScreen() {
 
     persist(updated(conversations.length > 0 ? conversations : [conv]));
     setBusy(true);
-
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
 
     try {
@@ -199,9 +186,17 @@ export default function AskAIScreen() {
   const deleteConversation = (id: string) => {
     const next = conversations.filter((c) => c.id !== id);
     persist(next);
-    if (activeId === id) {
-      setActiveId(next[0]?.id ?? null);
-    }
+    if (activeId === id) setActiveId(next[0]?.id ?? null);
+  };
+
+  const renameConversation = (id: string, title: string) => {
+    const clean = title.trim();
+    if (!clean) return;
+    persist(
+      conversations.map((c) =>
+        c.id === id ? { ...c, title: clean, updatedAt: Date.now() } : c,
+      ),
+    );
   };
 
   const messages = active?.messages ?? [];
@@ -209,62 +204,76 @@ export default function AskAIScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
-        <Pressable onPress={() => setDrawerOpen(true)} hitSlop={8} className="p-1">
+      {/* Minimal header */}
+      <View className="flex-row items-center justify-between px-3 py-2.5">
+        <Pressable
+          onPress={() => setDrawerOpen(true)}
+          hitSlop={8}
+          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
+        >
           <Ionicons name="menu" size={22} color={colors.foreground} />
         </Pressable>
-        <Text className="font-display text-base font-semibold text-foreground" numberOfLines={1}>
-          {active?.title ?? 'Ask AI'}
+        <Text
+          className="flex-1 text-center font-display text-[15px] font-semibold text-foreground"
+          numberOfLines={1}
+        >
+          {active?.title ?? t('ai.title')}
         </Text>
-        <Pressable onPress={startNew} hitSlop={8} className="p-1">
-          <Ionicons name="create-outline" size={22} color={colors.foreground} />
+        <Pressable
+          onPress={startNew}
+          hitSlop={8}
+          className="h-9 w-9 items-center justify-center rounded-full active:bg-muted"
+        >
+          <Ionicons name="create-outline" size={21} color={colors.foreground} />
         </Pressable>
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
         className="flex-1"
       >
         <ScrollView
           ref={scrollRef}
-          contentContainerClassName="px-4 py-5 pb-2"
+          contentContainerClassName="px-4 pt-2 pb-4"
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {showEmpty ? (
             <WelcomeScreen onSuggestion={send} />
           ) : (
-            <View className="gap-5">
+            <View className="gap-6 pt-2">
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} onPressFollowUp={send} />
+                <Turn key={m.id} message={m} onPressFollowUp={send} />
               ))}
-              {busy && <TypingIndicator />}
+              {busy ? <ThinkingRow /> : null}
             </View>
           )}
         </ScrollView>
 
-        <View className="border-t border-border px-3 py-2">
-          <View className="flex-row items-end gap-2 rounded-2xl border border-border bg-card px-3 py-2">
+        {/* Floating composer */}
+        <View className="px-3 pb-3 pt-1">
+          <View className="flex-row items-end gap-2 rounded-[26px] border border-border bg-card px-2 py-1.5">
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Ask about African youth data..."
+              placeholder={t('ai.placeholder')}
               placeholderTextColor={colors.mutedForeground}
               multiline
-              className="max-h-32 flex-1 py-1 text-base text-foreground"
+              className="max-h-32 flex-1 px-3 py-2 text-[15px] text-foreground"
               onSubmitEditing={() => send(draft)}
               blurOnSubmit={false}
             />
             <Pressable
               onPress={() => send(draft)}
               disabled={!draft.trim() || busy}
-              className={`h-9 w-9 items-center justify-center rounded-xl ${
+              className={`mb-0.5 h-9 w-9 items-center justify-center rounded-full ${
                 draft.trim() && !busy ? 'bg-primary' : 'bg-muted'
               }`}
             >
               <Ionicons
-                name={busy ? 'ellipsis-horizontal' : 'arrow-up'}
-                size={16}
+                name="arrow-up"
+                size={18}
                 color={
                   draft.trim() && !busy ? colors.primaryForeground : colors.mutedForeground
                 }
@@ -272,7 +281,7 @@ export default function AskAIScreen() {
             </Pressable>
           </View>
           <Text className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            Enter to send · Shift+Enter for new line
+            {t('ai.grounded')}
           </Text>
         </View>
       </KeyboardAvoidingView>
@@ -288,6 +297,7 @@ export default function AskAIScreen() {
         }}
         onNew={startNew}
         onDelete={deleteConversation}
+        onRename={renameConversation}
       />
     </SafeAreaView>
   );
@@ -295,37 +305,34 @@ export default function AskAIScreen() {
 
 function WelcomeScreen({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   return (
-    <View className="py-10">
+    <View className="flex-1 justify-center px-2 py-16">
       <View className="items-center">
-        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-          <Ionicons name="sparkles" size={26} color={colors.primary} />
+        <View
+          style={{ backgroundColor: 'rgba(212,160,23,0.14)' }}
+          className="h-16 w-16 items-center justify-center rounded-2xl"
+        >
+          <Ionicons name="sparkles" size={28} color="#D4A017" />
         </View>
-        <Text className="mt-4 font-display text-xl font-bold text-foreground">
-          Ask anything about African Youth
+        <Text className="mt-5 text-center font-display text-2xl font-bold text-foreground">
+          {t('ai.howCanIHelp')}
         </Text>
-        <Text className="mt-2 max-w-[42ch] text-center text-sm leading-5 text-muted-foreground">
-          Explore data from 54 countries, generate reports, compare regions, and uncover
-          insights powered by Claude AI.
+        <Text className="mt-2 max-w-[300px] text-center text-[13px] leading-5 text-muted-foreground">
+          {t('ai.welcomeDesc')}
         </Text>
       </View>
 
-      <View className="mt-8 gap-3">
-        {SUGGESTION_CARDS.map(({ icon, title, prompt }) => (
+      <View className="mt-9 gap-2.5">
+        {SUGGESTIONS.map(({ icon, label, prompt }) => (
           <Pressable
-            key={title}
+            key={label}
             onPress={() => onSuggestion(prompt)}
-            className="flex-row items-start gap-3 rounded-xl border border-border bg-card p-4 active:bg-muted"
+            className="flex-row items-center gap-3 rounded-2xl border border-border bg-card/60 px-4 py-3.5 active:bg-muted"
           >
-            <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <Ionicons name={icon} size={16} color={colors.primary} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-foreground">{title}</Text>
-              <Text className="mt-0.5 text-xs leading-4 text-muted-foreground" numberOfLines={2}>
-                {prompt}
-              </Text>
-            </View>
+            <Ionicons name={icon} size={17} color={colors.mutedForeground} />
+            <Text className="flex-1 text-[14px] text-foreground">{label}</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.mutedForeground} />
           </Pressable>
         ))}
       </View>
@@ -333,7 +340,7 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (prompt: string) => voi
   );
 }
 
-function MessageBubble({
+function Turn({
   message,
   onPressFollowUp,
 }: {
@@ -341,77 +348,124 @@ function MessageBubble({
   onPressFollowUp: (text: string) => void;
 }) {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const isUser = message.role === 'user';
-  return (
-    <View className={isUser ? 'items-end' : 'items-start'}>
-      <View
-        className={`max-w-[88%] flex-row gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
-      >
-        <View
-          className={`mt-0.5 h-7 w-7 items-center justify-center rounded-full ${
-            isUser ? 'bg-primary' : 'bg-pan-green-500/15'
-          }`}
-        >
-          <Ionicons
-            name={isUser ? 'person' : 'sparkles'}
-            size={13}
-            color={isUser ? colors.primaryForeground : colors.primary}
-          />
-        </View>
 
+  if (isUser) {
+    return (
+      <View className="items-end">
         <View
-          className={
-            isUser
-              ? 'rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2.5'
-              : message.error
-              ? 'rounded-2xl rounded-tl-sm border border-destructive/30 bg-destructive/10 px-3.5 py-2.5'
-              : 'flex-1 rounded-2xl rounded-tl-sm border border-border bg-card px-3.5 py-2.5'
-          }
+          style={{ backgroundColor: colors.muted }}
+          className="max-w-[85%] rounded-3xl rounded-br-lg px-4 py-2.5"
         >
-          {isUser ? (
-            <Text className="text-sm text-primary-foreground" style={{ lineHeight: 20 }}>
-              {message.content}
-            </Text>
-          ) : message.error ? (
-            <Text className="text-sm text-destructive">{message.content}</Text>
-          ) : (
-            <Markdown text={message.content} />
-          )}
+          <Text className="text-[15px] text-foreground" style={{ lineHeight: 22 }}>
+            {message.content}
+          </Text>
         </View>
       </View>
+    );
+  }
 
-      {!isUser && message.followUps && message.followUps.length > 0 ? (
-        <View className="ml-9 mt-3 w-[88%] gap-1.5">
-          <Text className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Follow-up
-          </Text>
-          {message.followUps.slice(0, 3).map((f) => (
-            <Pressable
-              key={f}
-              onPress={() => onPressFollowUp(f)}
-              className="rounded-xl border border-border bg-card px-3 py-2 active:bg-muted"
-            >
-              <Text className="text-sm text-foreground">{f}</Text>
-            </Pressable>
-          ))}
+  return (
+    <View>
+      <View className="flex-row items-center gap-2">
+        <View
+          style={{ backgroundColor: 'rgba(212,160,23,0.14)' }}
+          className="h-6 w-6 items-center justify-center rounded-full"
+        >
+          <Ionicons name="sparkles" size={12} color="#D4A017" />
         </View>
-      ) : null}
+        <Text className="text-[12px] font-semibold text-muted-foreground">
+          AfYO AI
+        </Text>
+      </View>
+
+      <View className="mt-2 pl-8">
+        {message.error ? (
+          <Text className="text-[15px] text-destructive" style={{ lineHeight: 22 }}>
+            {message.content}
+          </Text>
+        ) : (
+          <Markdown text={message.content} />
+        )}
+
+        {!message.error && message.followUps && message.followUps.length > 0 ? (
+          <View className="mt-4 gap-1.5 border-t border-border/50 pt-3">
+            <Text className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {t('ai.suggestedFollowUps')}
+            </Text>
+            {message.followUps.slice(0, 3).map((f) => (
+              <Pressable
+                key={f}
+                onPress={() => onPressFollowUp(f)}
+                className="flex-row items-center gap-2 rounded-xl border border-border bg-card/60 px-3 py-2.5 active:bg-muted"
+              >
+                <Ionicons name="arrow-forward-circle-outline" size={14} color={colors.primary} />
+                <Text className="flex-1 text-[13px] text-foreground">{f}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
 
-function TypingIndicator() {
+function ThinkingRow() {
   const colors = useThemeColors();
+  const dots = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
+
+  useEffect(() => {
+    const anims = dots.map((d, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 160),
+          Animated.timing(d, {
+            toValue: 1,
+            duration: 360,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(d, {
+            toValue: 0.3,
+            duration: 360,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ),
+    );
+    anims.forEach((a) => a.start());
+    return () => anims.forEach((a) => a.stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <View className="flex-row items-center gap-2">
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-pan-green-500/15">
-        <Ionicons name="sparkles" size={13} color={colors.primary} />
-      </View>
-      <View className="rounded-2xl border border-border bg-card px-3 py-2.5">
-        <View className="flex-row items-center gap-1.5">
-          <ActivityIndicator size="small" color={colors.mutedForeground} />
-          <Text className="text-sm text-muted-foreground">Thinking…</Text>
+    <View>
+      <View className="flex-row items-center gap-2">
+        <View
+          style={{ backgroundColor: 'rgba(212,160,23,0.14)' }}
+          className="h-6 w-6 items-center justify-center rounded-full"
+        >
+          <Ionicons name="sparkles" size={12} color="#D4A017" />
         </View>
+        <Text className="text-[12px] font-semibold text-muted-foreground">
+          AfYO AI
+        </Text>
+      </View>
+      <View className="mt-2.5 flex-row items-center gap-1.5 pl-8">
+        {dots.map((d, i) => (
+          <Animated.View
+            key={i}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              backgroundColor: colors.mutedForeground,
+              opacity: d,
+            }}
+          />
+        ))}
       </View>
     </View>
   );
@@ -428,6 +482,7 @@ function ConversationsDrawer({
   onSelect,
   onNew,
   onDelete,
+  onRename,
 }: {
   open: boolean;
   onClose: () => void;
@@ -436,21 +491,21 @@ function ConversationsDrawer({
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
 }) {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(open);
+  const [renaming, setRenaming] = useState<Conversation | null>(null);
+  const [renameText, setRenameText] = useState('');
 
   useEffect(() => {
     if (open) {
       setMounted(true);
       Animated.parallel([
-        Animated.timing(slide, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }),
+        Animated.timing(slide, { toValue: 0, duration: 220, useNativeDriver: true }),
         Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]).start();
     } else {
@@ -472,13 +527,7 @@ function ConversationsDrawer({
       pointerEvents={open ? 'auto' : 'none'}
       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
     >
-      <Animated.View
-        style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          opacity: fade,
-        }}
-      >
+      <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', opacity: fade }}>
         <Pressable onPress={onClose} style={{ flex: 1 }} />
       </Animated.View>
       <Animated.View
@@ -493,18 +542,33 @@ function ConversationsDrawer({
         }}
       >
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
-          <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
-            <Text className="font-display text-base font-semibold text-foreground">Chats</Text>
-            <Pressable onPress={onNew} hitSlop={8} className="flex-row items-center gap-1">
-              <Ionicons name="create-outline" size={18} color={colors.primary} />
-              <Text className="text-sm font-semibold text-primary">New</Text>
+          <View className="flex-row items-center justify-between px-4 py-3.5">
+            <Text className="font-display text-base font-semibold text-foreground">
+              {t('ai.chats')}
+            </Text>
+            <Pressable
+              onPress={onNew}
+              hitSlop={8}
+              className="flex-row items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5"
+            >
+              <Ionicons name="create-outline" size={16} color={colors.primary} />
+              <Text className="text-[13px] font-semibold text-primary">
+                {t('ai.newChat')}
+              </Text>
             </Pressable>
           </View>
 
-          <ScrollView contentContainerClassName="px-2 py-2">
+          <ScrollView contentContainerClassName="px-2 py-1">
             {conversations.length === 0 ? (
-              <View className="items-center py-10">
-                <Text className="text-sm text-muted-foreground">No conversations yet</Text>
+              <View className="items-center py-12">
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={26}
+                  color={colors.mutedForeground}
+                />
+                <Text className="mt-2 text-sm text-muted-foreground">
+                  {t('ai.noConversations')}
+                </Text>
               </View>
             ) : (
               conversations.map((c) => {
@@ -512,25 +576,48 @@ function ConversationsDrawer({
                 return (
                   <View
                     key={c.id}
-                    className={`mb-1 flex-row items-center rounded-xl px-3 py-2.5 ${
-                      isActive ? 'bg-primary/10' : ''
+                    className={`mb-1 flex-row items-center rounded-xl px-3 py-3 ${
+                      isActive ? 'bg-primary/10' : 'active:bg-muted'
                     }`}
                   >
                     <Pressable onPress={() => onSelect(c.id)} className="flex-1">
                       <Text
                         numberOfLines={1}
-                        className={`text-sm ${
+                        className={`text-[14px] ${
                           isActive ? 'font-semibold text-primary' : 'text-foreground'
                         }`}
                       >
                         {c.title}
                       </Text>
-                      <Text className="text-[10px] text-muted-foreground">
-                        {c.messages.length} messages
+                      <Text className="mt-0.5 text-[11px] text-muted-foreground">
+                        {c.messages.length} message{c.messages.length === 1 ? '' : 's'}
                       </Text>
                     </Pressable>
-                    <Pressable onPress={() => onDelete(c.id)} hitSlop={6} className="p-1">
-                      <Ionicons name="trash-outline" size={14} color={colors.mutedForeground} />
+                    <Pressable
+                      onPress={() => {
+                        tapLight();
+                        setRenameText(c.title);
+                        setRenaming(c);
+                      }}
+                      hitSlop={6}
+                      className="h-7 w-7 items-center justify-center rounded-md active:bg-muted"
+                    >
+                      <Ionicons
+                        name="pencil-outline"
+                        size={14}
+                        color={colors.mutedForeground}
+                      />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => onDelete(c.id)}
+                      hitSlop={6}
+                      className="h-7 w-7 items-center justify-center rounded-md active:bg-muted"
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={14}
+                        color={colors.mutedForeground}
+                      />
                     </Pressable>
                   </View>
                 );
@@ -539,6 +626,63 @@ function ConversationsDrawer({
           </ScrollView>
         </SafeAreaView>
       </Animated.View>
+
+      {renaming ? (
+        <View
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          className="items-center justify-center px-8"
+        >
+          <Pressable
+            onPress={() => setRenaming(null)}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            className="bg-black/55"
+          />
+          <View className="w-full max-w-sm rounded-2xl border border-border bg-card p-5">
+            <Text className="font-display text-base font-bold text-foreground">
+              {t('ai.renameChat')}
+            </Text>
+            <TextInput
+              value={renameText}
+              onChangeText={setRenameText}
+              autoFocus
+              placeholder={t('ai.renameChat')}
+              placeholderTextColor={colors.mutedForeground}
+              className="mt-4 rounded-xl border border-border bg-background px-3.5 py-3 text-[15px] text-foreground"
+              onSubmitEditing={() => {
+                if (renameText.trim()) {
+                  onRename(renaming.id, renameText);
+                  setRenaming(null);
+                }
+              }}
+            />
+            <View className="mt-4 flex-row justify-end gap-2">
+              <Pressable
+                onPress={() => setRenaming(null)}
+                className="rounded-xl border border-border px-4 py-2.5 active:bg-muted"
+              >
+                <Text className="text-[14px] font-semibold text-foreground">
+                  {t('common.cancel')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (renameText.trim()) {
+                    onRename(renaming.id, renameText);
+                    setRenaming(null);
+                  }
+                }}
+                disabled={!renameText.trim()}
+                style={!renameText.trim() ? { opacity: 0.5 } : undefined}
+                className="rounded-xl bg-primary px-4 py-2.5 active:opacity-80"
+              >
+                <Text className="text-[14px] font-semibold text-primary-foreground">
+                  {t('common.save')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

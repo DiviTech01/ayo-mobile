@@ -13,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,11 +28,11 @@ export default function ChangePasswordScreen() {
 
   const onSubmit = async () => {
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t('changePassword.tooShort'));
       return;
     }
     if (password !== confirm) {
-      setError('Passwords do not match.');
+      setError(t('changePassword.mismatch'));
       return;
     }
     setBusy(true);
@@ -56,25 +58,26 @@ export default function ChangePasswordScreen() {
       >
         <ScrollView contentContainerClassName="pb-12">
           <PageHeader
-            title="Change Password"
-            description="Set a new password for your account. Other devices will need to sign in again."
+            title={t('changePassword.title')}
+            description={t('changePassword.description')}
             icon="key"
             showBack
           />
           <View className="p-5">
           <View className="rounded-2xl border border-border bg-card p-5">
             <Text className="text-sm leading-5 text-muted-foreground">
-              Enter a new password. You&rsquo;ll stay signed in on this device — other devices
-              will need to sign in again.
+              {t('changePassword.intro')}
             </Text>
 
             <View className="mt-5">
-              <Text className="mb-1.5 text-sm font-medium text-foreground">New password</Text>
+              <Text className="mb-1.5 text-sm font-medium text-foreground">
+                {t('changePassword.newPassword')}
+              </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                placeholder="At least 8 characters"
+                placeholder={t('changePassword.newPwPlaceholder')}
                 placeholderTextColor={colors.mutedForeground}
                 className="rounded-xl border border-border bg-muted px-4 py-3 text-base text-foreground"
               />
@@ -82,13 +85,13 @@ export default function ChangePasswordScreen() {
 
             <View className="mt-4">
               <Text className="mb-1.5 text-sm font-medium text-foreground">
-                Confirm new password
+                {t('changePassword.confirm')}
               </Text>
               <TextInput
                 value={confirm}
                 onChangeText={setConfirm}
                 secureTextEntry
-                placeholder="Type it again"
+                placeholder={t('changePassword.confirmPlaceholder')}
                 placeholderTextColor={colors.mutedForeground}
                 className="rounded-xl border border-border bg-muted px-4 py-3 text-base text-foreground"
               />
@@ -103,7 +106,9 @@ export default function ChangePasswordScreen() {
 
           {saved ? (
             <View className="mt-3 rounded-lg bg-primary/10 px-3 py-2">
-              <Text className="text-sm text-primary">Password updated.</Text>
+              <Text className="text-sm text-primary">
+                {t('changePassword.updated')}
+              </Text>
             </View>
           ) : null}
 
@@ -116,7 +121,7 @@ export default function ChangePasswordScreen() {
               <ActivityIndicator color={colors.primaryForeground} />
             ) : (
               <Text className="text-center text-base font-semibold text-primary-foreground">
-                Update password
+                {t('changePassword.updateBtn')}
               </Text>
             )}
           </Pressable>

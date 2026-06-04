@@ -11,3 +11,8 @@ export const webLinks = {
 } as const;
 
 export type WebLinkKey = keyof typeof webLinks;
+
+/** Public PKPB report page for a single country on the web app. */
+export function pkpbWebLink(countryRef: string): string {
+  return `${BASE}/pkpb/${encodeURIComponent(countryRef)}`;
+}

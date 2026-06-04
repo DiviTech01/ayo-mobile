@@ -137,6 +137,16 @@ export function useCountryReportOverlay(countryRef: string | undefined) {
   });
 }
 
+export function usePkpbForCountry(countryRef: string | undefined) {
+  return useQuery({
+    queryKey: ['pkpb', countryRef] as const,
+    queryFn: () => api.documents.pkpbForCountry(countryRef!),
+    enabled: !!countryRef,
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
+}
+
 export function useCountryDirectory(year: number = 2025) {
   const countriesQ = useCountries();
   const rankingsQ = useYouthIndexRankings(year);

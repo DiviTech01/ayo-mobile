@@ -1,96 +1,111 @@
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, type Href } from 'expo-router';
-import { PageHeader } from '@/components/PageHeader';
 import { AfricaMap } from '@/components/AfricaMap';
-import { useCountryDirectory } from '@/lib/queries';
+import { GradientHeading } from '@/components/GradientHeading';
+import { useCountries } from '@/lib/queries';
 import {
-  flagFromIso3,
   REGIONS,
   REGION_ABBR,
-  tierColor,
   type Region,
 } from '@/lib/country-helpers';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapLight, tapSelection } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
+import {
+  DataFiltersSheet,
+  type ExploreFilters,
+} from '@/components/explore/DataFiltersSheet';
+import { DataChart } from '@/components/explore/DataChart';
+import {
+  ALL_COUNTRIES,
+  ALL_THEMES,
+  SELECT_INDICATOR,
+} from '@/lib/explore-data';
 
 type RegionFilter = Region | 'All';
 
-const THEMES = ['All Themes', 'Population', 'Education', 'Health', 'Employment', 'Entrepreneurship'];
-const INDICATORS_BY_THEME: Record<string, string[]> = {
-  Population: ['Total Youth Population', 'Youth as % of Total', 'Growth Rate', 'Urban/Rural', 'Gender Distribution'],
-  Education: ['Literacy Rate', 'Primary Enrollment', 'Secondary Enrollment', 'Tertiary Enrollment', 'Completion Rates'],
-  Health: ['Healthcare Access', 'HIV Prevalence', 'Mental Health', 'Nutrition Status'],
-  Employment: ['Unemployment Rate', 'Labor Force Participation', 'Formal vs Informal', 'Industry Distribution'],
-  Entrepreneurship: ['Business Ownership', 'Startup Formation', 'Access to Finance', 'Innovation Metrics'],
-};
-
-const REGION_DOTS: Record<string, string> = {
-  North: 'hsl(36, 100%, 65%)',
-  West: 'hsl(142, 76%, 66%)',
-  East: 'hsl(199, 93%, 67%)',
-  Central: 'hsl(0, 90%, 71%)',
-  Southern: 'hsl(280, 65%, 70%)',
-};
+const TAB_BAR_HEIGHT = 58;
 
 export default function ExploreScreen() {
-  const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const countriesQ = useCountries();
   const [regionFilter, setRegionFilter] = useState<RegionFilter>('All');
-  const [selectedIso3, setSelectedIso3] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [theme, setTheme] = useState('All Themes');
-  const [indicator, setIndicator] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ExploreFilters>({
+    country: ALL_COUNTRIES,
+    theme: ALL_THEMES,
+    indicator: SELECT_INDICATOR,
+    yearRange: [2021, 2025],
+    gender: 'all',
+    ageGroup: '15-35',
+  });
 
-  const directory = useCountryDirectory();
-
-  const byIso3 = useMemo(() => {
-    const m = new Map<
-      string,
-      { country: string; slug: string; iso3: string; region: Region; score: number }
-    >();
-    directory.items.forEach((c) => {
-      const iso3 = c.iso3Code;
-      if (!iso3) return;
-      m.set(iso3, {
-        country: c.name,
-        slug: c.slug,
-        iso3,
-        region: c.region as Region,
-        score: c.ayemiScore,
-      });
+  const iso3ToCountryName = useMemo(() => {
+    const map = new Map<string, string>();
+    const list = Array.isArray(countriesQ.data) ? countriesQ.data : [];
+    list.forEach((c) => {
+      const iso3 = c.iso3Code ?? (c as { isoCode3?: string }).isoCode3;
+      if (iso3) map.set(iso3, c.name);
     });
-    return m;
-  }, [directory.items]);
+    return map;
+  }, [countriesQ.data]);
 
-  const selected = selectedIso3 ? byIso3.get(selectedIso3) : null;
-  const availableIndicators =
-    theme !== 'All Themes' ? INDICATORS_BY_THEME[theme] ?? [] : [];
+  const countryNameToIso3 = useMemo(() => {
+    const map = new Map<string, string>();
+    iso3ToCountryName.forEach((name, iso3) => map.set(name, iso3));
+    return map;
+  }, [iso3ToCountryName]);
+
+  const selectedIso3 = useMemo(() => {
+    if (filters.country === ALL_COUNTRIES) return null;
+    return countryNameToIso3.get(filters.country) ?? null;
+  }, [filters.country, countryNameToIso3]);
+
+  const onMapPress = useCallback(
+    (iso3: string) => {
+      tapLight();
+      const name = iso3ToCountryName.get(iso3);
+      if (!name) return;
+      setFilters((prev) => ({
+        ...prev,
+        country: prev.country === name ? ALL_COUNTRIES : name,
+      }));
+    },
+    [iso3ToCountryName],
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView contentContainerClassName="pb-32">
-        <PageHeader
-          title="Data Explorer"
-          description="Explore comprehensive data on African youth across multiple countries and themes."
-          rightAction={{
-            icon: 'options-outline',
-            label: 'Filters',
-            onPress: () => setFilterOpen(true),
-          }}
-        />
-
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 24,
+        }}
+        scrollEventThrottle={16}
+      >
+        {/* Header */}
         <View className="px-5 pt-3">
+          <GradientHeading fontSize={28} align="left">
+            {t('explore.title')}
+          </GradientHeading>
+          <Text className="mt-1 text-[12px] leading-4" style={{ color: '#A89070' }}>
+            {t('explore.subtitle')}
+          </Text>
+        </View>
+
+        {/* Region chips */}
+        <View className="mt-4 px-5">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerClassName="gap-2 pr-5"
           >
-            <FilterChip
-              label="All"
+            <RegionChip
+              label={t('common.all')}
               active={regionFilter === 'All'}
               onPress={() => {
                 tapSelection();
@@ -98,7 +113,7 @@ export default function ExploreScreen() {
               }}
             />
             {REGIONS.map((r) => (
-              <FilterChip
+              <RegionChip
                 key={r}
                 label={REGION_ABBR[r]}
                 active={regionFilter === r}
@@ -111,122 +126,94 @@ export default function ExploreScreen() {
           </ScrollView>
         </View>
 
-        <View className="px-5 pt-4">
-          <View className="rounded-2xl border border-border bg-card p-4">
-            <Text className="font-display text-base font-bold text-foreground">Africa Map</Text>
-            <Text className="mt-0.5 text-xs text-muted-foreground">
-              Tap any country to view its youth data.
-            </Text>
+        {/* Map card */}
+        <View className="mt-4 px-5">
+          <View
+            style={{ backgroundColor: 'rgba(255,255,255,0.025)' }}
+            className="rounded-2xl border border-border p-4"
+          >
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="min-w-0 flex-1">
+                <Text className="font-display text-base font-bold text-foreground">
+                  {t('explore.africaMap')}
+                </Text>
+                <Text className="mt-0.5 text-[11px] text-muted-foreground">
+                  {t('explore.mapHelp')}
+                </Text>
+              </View>
+              {filters.country !== ALL_COUNTRIES ? (
+                <View className="items-end">
+                  <Text className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {t('explore.selected')}
+                  </Text>
+                  <Text className="text-[13px] font-semibold" style={{ color: '#34d399' }} numberOfLines={1}>
+                    {filters.country}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
             <View className="mt-3">
               <AfricaMap
                 regionFilter={regionFilter}
                 selectedIso3={selectedIso3}
-                onCountryPress={setSelectedIso3}
+                onCountryPress={onMapPress}
               />
             </View>
-            <View className="mt-3 flex-row flex-wrap gap-3">
-              <Legend dot={REGION_DOTS.North} label="North" />
-              <Legend dot={REGION_DOTS.West} label="West" />
-              <Legend dot={REGION_DOTS.East} label="East" />
-              <Legend dot={REGION_DOTS.Central} label="Central" />
-              <Legend dot={REGION_DOTS.Southern} label="Southern" />
-            </View>
-          </View>
-
-          <View className="mt-4 rounded-2xl border border-border bg-card p-4">
-            <Text className="font-display text-base font-bold text-foreground">Indicator Data</Text>
-            <Text className="mt-0.5 text-xs text-muted-foreground">
-              {indicator ? indicator : 'Choose a theme and indicator to view trends'}
-            </Text>
-            {!indicator ? (
-              <View className="mt-4 items-center justify-center rounded-xl bg-muted/40 py-12">
-                <Ionicons name="bar-chart-outline" size={36} color={colors.mutedForeground} />
-                <Text className="mt-2 text-sm text-muted-foreground">
-                  Open Filters to choose an indicator
-                </Text>
-                <Pressable
-                  onPress={() => setFilterOpen(true)}
-                  className="mt-3 rounded-md border border-border bg-card px-3 py-1.5 active:bg-muted"
-                >
-                  <Text className="text-xs font-semibold text-foreground">Open Filters</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <View className="mt-4 items-center justify-center rounded-xl bg-muted/40 py-10">
-                <Text className="text-xs text-muted-foreground">
-                  Chart for {indicator} coming soon — preview on the web.
-                </Text>
-              </View>
-            )}
           </View>
         </View>
-      </ScrollView>
 
-      {selected ? (
-        <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl border-t border-border bg-card px-5 pb-6 pt-4 shadow-2xl">
-          <View className="mb-2 items-center">
-            <View className="h-1 w-10 rounded-full bg-muted" />
-          </View>
-          <View className="flex-row items-start">
-            <Text className="text-5xl">{flagFromIso3(selected.iso3)}</Text>
-            <View className="ml-3 flex-1">
-              <Text className="font-display text-xl font-bold text-foreground">
-                {selected.country}
-              </Text>
-              <Text className="text-xs text-muted-foreground">{selected.region}</Text>
-              <View className="mt-2 flex-row items-center gap-2">
-                <View className={`rounded-full px-2 py-0.5 ${tierColor(selected.score).bg}`}>
-                  <Text className={`text-[11px] font-semibold ${tierColor(selected.score).text}`}>
-                    {tierColor(selected.score).label}
-                  </Text>
-                </View>
-                <Text className="text-base font-bold tabular-nums text-foreground">
-                  AYEMI {selected.score || '—'}
-                </Text>
-              </View>
-            </View>
-            <Pressable hitSlop={8} onPress={() => setSelectedIso3(null)} className="p-1">
-              <Ionicons name="close" size={20} color={colors.mutedForeground} />
-            </Pressable>
-          </View>
-
+        {/* Filter button between map and chart */}
+        <View className="mt-4 px-5">
           <Pressable
             onPress={() => {
               tapLight();
-              router.push(
-                {
-                  pathname: '/country/[slug]',
-                  params: { slug: selected.slug },
-                } as unknown as Href,
-              );
+              setFiltersOpen(true);
             }}
-            className="mt-4 flex-row items-center justify-center gap-1.5 rounded-xl bg-primary py-3 active:opacity-80"
+            className="flex-row items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 active:bg-muted"
           >
-            <Text className="text-base font-semibold text-primary-foreground">
-              View report card
-            </Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
+            <View className="flex-row items-center gap-2.5">
+              <View
+                style={{ backgroundColor: 'rgba(212,160,23,0.15)' }}
+                className="h-9 w-9 items-center justify-center rounded-full"
+              >
+                <Ionicons name="options-outline" size={16} color="#D4A017" />
+              </View>
+              <View>
+                <Text className="text-[13px] font-semibold text-foreground">
+                  {t('explore.dataFilters')}
+                </Text>
+                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                  {summarizeFilters(filters, t)}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
           </Pressable>
         </View>
-      ) : null}
 
-      <FiltersSheet
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        theme={theme}
-        setTheme={(t) => {
-          setTheme(t);
-          setIndicator(null);
-        }}
-        indicator={indicator}
-        setIndicator={setIndicator}
-        availableIndicators={availableIndicators}
+        {/* Data chart card */}
+        <View className="mt-4 px-5">
+          <DataChart
+            country={filters.country}
+            theme={filters.theme}
+            indicator={filters.indicator}
+            yearRange={filters.yearRange}
+          />
+        </View>
+      </ScrollView>
+
+      <DataFiltersSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        value={filters}
+        onChange={setFilters}
       />
     </SafeAreaView>
   );
 }
 
-function FilterChip({
+function RegionChip({
   label,
   active,
   onPress,
@@ -243,7 +230,7 @@ function FilterChip({
       }`}
     >
       <Text
-        className={`text-xs font-medium ${
+        className={`text-[12px] font-medium ${
           active ? 'text-primary-foreground' : 'text-foreground'
         }`}
       >
@@ -253,133 +240,24 @@ function FilterChip({
   );
 }
 
-function Legend({ dot, label }: { dot: string; label: string }) {
-  return (
-    <View className="flex-row items-center gap-1.5">
-      <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: dot }} />
-      <Text className="text-[11px] text-muted-foreground">{label}</Text>
-    </View>
-  );
+function summarizeFilters(
+  f: {
+    country: string;
+    theme: string;
+    indicator: string;
+    yearRange: [number, number];
+  },
+  t: (key: string) => string,
+): string {
+  const parts: string[] = [];
+  if (f.theme !== ALL_THEMES && f.indicator !== SELECT_INDICATOR) {
+    parts.push(f.indicator);
+  } else if (f.theme !== ALL_THEMES) {
+    parts.push(`${f.theme} · ${t('explore.pickIndicator')}`);
+  } else {
+    parts.push(t('explore.filtersSummary'));
+  }
+  parts.push(`${f.yearRange[0]}–${f.yearRange[1]}`);
+  return parts.join(' · ');
 }
 
-function FiltersSheet({
-  open,
-  onClose,
-  theme,
-  setTheme,
-  indicator,
-  setIndicator,
-  availableIndicators,
-}: {
-  open: boolean;
-  onClose: () => void;
-  theme: string;
-  setTheme: (t: string) => void;
-  indicator: string | null;
-  setIndicator: (i: string) => void;
-  availableIndicators: string[];
-}) {
-  const colors = useThemeColors();
-  return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/50" onPress={onClose}>
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          className="rounded-t-3xl bg-card px-5 pb-8 pt-3"
-        >
-          <View className="mb-2 items-center">
-            <View className="h-1 w-10 rounded-full bg-muted" />
-          </View>
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text className="font-display text-lg font-bold text-foreground">Data Filters</Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={22} color={colors.foreground} />
-            </Pressable>
-          </View>
-
-          <ScrollView className="max-h-[70vh]">
-            <FilterLabel>Theme</FilterLabel>
-            <View className="mb-5 flex-row flex-wrap gap-2">
-              {THEMES.map((t) => {
-                const active = t === theme;
-                return (
-                  <Pressable
-                    key={t}
-                    onPress={() => {
-                      tapSelection();
-                      setTheme(t);
-                    }}
-                    className={`rounded-full px-3 py-1.5 ${
-                      active ? 'bg-primary' : 'border border-border bg-muted'
-                    }`}
-                  >
-                    <Text
-                      className={`text-xs font-medium ${
-                        active ? 'text-primary-foreground' : 'text-foreground'
-                      }`}
-                    >
-                      {t}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <FilterLabel>Indicator</FilterLabel>
-            <View className="mb-5 gap-2">
-              {availableIndicators.length === 0 ? (
-                <Text className="text-xs text-muted-foreground">
-                  Choose a theme first to see indicators.
-                </Text>
-              ) : (
-                availableIndicators.map((ind) => {
-                  const active = ind === indicator;
-                  return (
-                    <Pressable
-                      key={ind}
-                      onPress={() => {
-                        tapSelection();
-                        setIndicator(ind);
-                      }}
-                      className={`flex-row items-center justify-between rounded-xl border px-3.5 py-3 ${
-                        active
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-muted'
-                      }`}
-                    >
-                      <Text
-                        className={`text-sm ${
-                          active ? 'font-semibold text-primary' : 'text-foreground'
-                        }`}
-                      >
-                        {ind}
-                      </Text>
-                      {active ? (
-                        <Ionicons name="checkmark" size={16} color={colors.primary} />
-                      ) : null}
-                    </Pressable>
-                  );
-                })
-              )}
-            </View>
-          </ScrollView>
-
-          <Pressable
-            onPress={onClose}
-            className="mt-2 flex-row items-center justify-center rounded-xl bg-primary py-3.5 active:opacity-80"
-          >
-            <Text className="text-base font-semibold text-primary-foreground">Apply</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function FilterLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-      {children}
-    </Text>
-  );
-}

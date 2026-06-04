@@ -72,6 +72,18 @@ export interface IndicatorValue {
   source: string;
 }
 
+// 7-theme dimension keys, matching the API. Stable slugs — used everywhere across mobile.
+export type ThemeSlug =
+  | 'youth-demography-participation'
+  | 'education'
+  | 'employment'
+  | 'health'
+  | 'entrepreneurship'
+  | 'peace-security'
+  | 'access-to-justice';
+
+export type DimensionScores = Record<ThemeSlug, number>;
+
 export interface YouthIndexScore {
   rank: number;
   countryId: string;
@@ -81,18 +93,15 @@ export interface YouthIndexScore {
   flagEmoji?: string | null;
   region: string;
   overallScore: number;
-  educationScore: number;
-  employmentScore: number;
-  healthScore: number;
-  civicScore: number;
-  innovationScore: number;
-  dimensions: {
-    education: number;
-    employment: number;
-    health: number;
-    civic: number;
-    innovation: number;
-  };
+  // Canonical 7-theme dimension scores (slug-keyed)
+  dimensions: DimensionScores;
+  // Legacy flat fields kept for back-compat with screens not yet migrated to .dimensions.
+  // Mapping: civicScore ← demography & participation; innovationScore ← entrepreneurship.
+  educationScore?: number;
+  employmentScore?: number;
+  healthScore?: number;
+  civicScore?: number;
+  innovationScore?: number;
   previousRank?: number;
   rankChange?: number;
   percentile?: number;
@@ -102,6 +111,37 @@ export interface YouthIndexScore {
 export interface YouthIndexRankingsResponse {
   data: YouthIndexScore[];
   meta: { year: number; totalCountries: number; averageScore: number; methodology: string };
+}
+
+// Normalizes whatever shape the API returns into the 7-theme YouthIndexScore.
+// Populates both the canonical `dimensions` map and the legacy flat fields so
+// screens written for the old 5-dim shape keep working during migration.
+export function normalizeYouthIndexScore(r: any): YouthIndexScore {
+  const d: Record<string, number> = (r && r.dimensions && typeof r.dimensions === 'object') ? r.dimensions : {};
+  const demography = d['youth-demography-participation'] ?? 50;
+  const education = d['education'] ?? r?.educationScore ?? 50;
+  const employment = d['employment'] ?? r?.employmentScore ?? 50;
+  const health = d['health'] ?? r?.healthScore ?? 50;
+  const entrepreneurship = d['entrepreneurship'] ?? 50;
+  const peaceSecurity = d['peace-security'] ?? 50;
+  const accessToJustice = d['access-to-justice'] ?? 50;
+  return {
+    ...r,
+    dimensions: {
+      'youth-demography-participation': demography,
+      'education':                       education,
+      'employment':                      employment,
+      'health':                          health,
+      'entrepreneurship':                entrepreneurship,
+      'peace-security':                  peaceSecurity,
+      'access-to-justice':               accessToJustice,
+    },
+    educationScore: education,
+    employmentScore: employment,
+    healthScore: health,
+    civicScore: demography,         // legacy: civic folded into demography & participation
+    innovationScore: entrepreneurship, // legacy: innovation folded into entrepreneurship
+  };
 }
 
 export interface PolicyMonitorEntry {
@@ -327,9 +367,13 @@ export const api = {
   youthIndex: {
     rankings: async (year?: number): Promise<YouthIndexScore[]> => {
       const res = await get<YouthIndexRankingsResponse>('/youth-index/rankings', { year });
-      return Array.isArray(res?.data) ? res.data : [];
+      const raw = Array.isArray(res?.data) ? res.data : [];
+      return raw.map(normalizeYouthIndexScore);
     },
-    get: (countryId: string) => get<YouthIndexScore>(`/youth-index/${countryId}`),
+    get: async (countryId: string): Promise<YouthIndexScore> => {
+      const r = await get<YouthIndexScore>(`/youth-index/${countryId}`);
+      return normalizeYouthIndexScore(r);
+    },
   },
 
   policyMonitor: {
@@ -357,9 +401,11 @@ export const api = {
     list: (params?: { countryId?: string; type?: DocumentType; limit?: number }) =>
       get<DocumentSummary[]>('/documents', params),
     pkpbForCountry: (countryRef: string) =>
-      get<{ htmlDocument?: DocumentSummary; pdfDocument?: DocumentSummary } | null>(
-        `/documents/by-country/${countryRef}/pkpb`,
-      ),
+      get<{
+        htmlDocument?: DocumentSummary;
+        pdfDocument?: DocumentSummary;
+        document?: DocumentSummary;
+      } | null>(`/documents/by-country/${countryRef}/pkpb`),
   },
 
   countryReports: {

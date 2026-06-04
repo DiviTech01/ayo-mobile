@@ -14,9 +14,13 @@ import {
 } from '@/lib/auth';
 import { PageHeader } from '@/components/PageHeader';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useNotificationPrefs } from '@/lib/notifications';
+import { useTranslation } from '@/lib/i18n';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { prefs: notifPrefs } = useNotificationPrefs();
+  const { t, languageInfo } = useTranslation();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [organization, setOrganization] = useState<string | null>(null);
@@ -60,15 +64,28 @@ export default function SettingsScreen() {
   };
 
   const toggleBio = async (value: boolean) => {
+    // Biometric unlock needs a PIN as its fallback. If the user enables it
+    // without a PIN, send them to set one instead of silently doing nothing.
+    if (value && !pinSet) {
+      Alert.alert(
+        'Set an app PIN first',
+        'Biometric unlock uses your PIN as a fallback. Set a 4-digit PIN, then turn on Face ID / fingerprint.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Set PIN', onPress: () => router.push('/pin-setup') },
+        ],
+      );
+      return;
+    }
     await setBiometricEnabled(value);
     setBioOn(value);
   };
 
   const onSignOut = async () => {
-    Alert.alert('Sign out?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('auth.signOutConfirm'), undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign out',
+        text: t('auth.signOut'),
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -82,8 +99,8 @@ export default function SettingsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView contentContainerClassName="pb-12">
         <PageHeader
-          title="Settings"
-          description="Manage your account, security, and preferences."
+          title={t('profile.title')}
+          description={t('profile.description')}
         />
 
         <View className="px-5 pt-5">
@@ -113,83 +130,90 @@ export default function SettingsScreen() {
             className="mt-4 rounded-xl bg-muted py-2.5"
           >
             <Text className="text-center text-sm font-semibold text-primary">
-              Edit profile
+              {t('profile.editProfile')}
             </Text>
           </Pressable>
         </View>
 
-        <SectionLabel>Security</SectionLabel>
+        <SectionLabel>{t('profile.security')}</SectionLabel>
         <View className="rounded-2xl border border-border bg-card">
           <SwitchRow
-            label="Require PIN to open app"
-            sub="4-digit code, asked each time you open AfYO."
+            label={t('profile.requirePin')}
+            sub={t('profile.requirePinSub')}
             value={pinSet}
             onValueChange={togglePin}
           />
           <Divider />
           <SwitchRow
-            label="Use Face ID / fingerprint"
+            label={t('profile.biometric')}
             sub={
-              bioSupported
-                ? 'Faster than typing your PIN.'
-                : 'Not available on this device.'
+              !bioSupported
+                ? t('profile.biometricUnavailable')
+                : !pinSet
+                  ? t('profile.biometricNeedPin')
+                  : t('profile.biometricFaster')
             }
             value={bioOn}
             onValueChange={toggleBio}
-            disabled={!bioSupported || !pinSet}
+            disabled={!bioSupported}
           />
           <Divider />
           <NavRow
             icon="key-outline"
-            label="Change password"
+            label={t('profile.changePassword')}
             onPress={() => router.push('/change-password' as unknown as Href)}
           />
         </View>
 
-        <SectionLabel>Preferences</SectionLabel>
+        <SectionLabel>{t('profile.preferences')}</SectionLabel>
         <View className="rounded-2xl border border-border bg-card">
-          <NavRow icon="language-outline" label="Language" value="English" disabled />
+          <NavRow
+            icon="language-outline"
+            label={t('profile.language')}
+            value={languageInfo.nativeName}
+            onPress={() => router.push('/language' as unknown as Href)}
+          />
           <Divider />
           <NavRow
             icon="notifications-outline"
-            label="Notifications"
-            value="Default"
-            disabled
+            label={t('profile.notifications')}
+            value={notifPrefs.enabled ? t('profile.on') : t('profile.off')}
+            onPress={() => router.push('/notifications' as unknown as Href)}
           />
         </View>
 
-        <SectionLabel>Resources</SectionLabel>
+        <SectionLabel>{t('profile.resources')}</SectionLabel>
         <View className="rounded-2xl border border-border bg-card">
           <NavRow
             icon="book-outline"
-            label="Glossary"
+            label={t('profile.glossary')}
             onPress={() => router.push('/resources/glossary' as unknown as Href)}
           />
           <Divider />
           <NavRow
             icon="help-circle-outline"
-            label="FAQ"
+            label={t('profile.faq')}
             onPress={() => router.push('/resources/faq' as unknown as Href)}
           />
           <Divider />
           <NavRow
             icon="document-text-outline"
-            label="Methodology"
+            label={t('profile.methodology')}
             onPress={() => router.push('/resources/methodology' as unknown as Href)}
           />
         </View>
 
-        <SectionLabel>About</SectionLabel>
+        <SectionLabel>{t('profile.about')}</SectionLabel>
         <View className="rounded-2xl border border-border bg-card">
           <NavRow
             icon="information-circle-outline"
-            label="About AfYO"
+            label={t('profile.about')}
             onPress={() => router.push('/about' as unknown as Href)}
           />
           <Divider />
           <NavRow
             icon="shield-checkmark-outline"
-            label="Privacy & terms"
+            label={t('profile.privacyTerms')}
             onPress={() => router.push('/about' as unknown as Href)}
           />
         </View>
@@ -199,7 +223,7 @@ export default function SettingsScreen() {
           className="mt-8 rounded-xl border border-destructive/30 bg-destructive/10 py-3"
         >
           <Text className="text-center text-base font-semibold text-destructive">
-            Sign out
+            {t('auth.signOut')}
           </Text>
         </Pressable>
 

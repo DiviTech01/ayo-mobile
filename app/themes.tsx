@@ -4,6 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemes } from '@/lib/queries';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
@@ -14,6 +15,7 @@ const ICON_MAP: Record<string, React.ComponentProps<typeof Ionicons>['name']> = 
   GraduationCap: 'school',
   Briefcase: 'briefcase',
   Heart: 'heart',
+  HeartPulse: 'heart',           // backend uses HeartPulse for the Health theme
   Vote: 'megaphone',
   Lightbulb: 'bulb',
   Wheat: 'leaf',
@@ -31,6 +33,7 @@ function iconFor(name?: string | null): React.ComponentProps<typeof Ionicons>['n
 export default function ThemesScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const q = useThemes();
   const themes = Array.isArray(q.data) ? q.data : [];
 
@@ -38,8 +41,8 @@ export default function ThemesScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView contentContainerClassName="pb-2">
         <PageHeader
-          title="Thematic Areas"
-          description="Explore our core thematic areas of youth development in Africa."
+          title={t('themes.title')}
+          description={t('themes.description')}
           showBack
         />
 
@@ -51,9 +54,11 @@ export default function ThemesScreen() {
         ) : q.error && themes.length === 0 ? (
           <View className="items-center py-16">
             <Ionicons name="cloud-offline-outline" size={32} color={colors.mutedForeground} />
-            <Text className="mt-2 text-sm text-muted-foreground">Couldn&rsquo;t load themes.</Text>
+            <Text className="mt-2 text-sm text-muted-foreground">
+              {t('themes.loadError')}
+            </Text>
             <Pressable onPress={() => q.refetch()} className="mt-3">
-              <Text className="text-sm font-medium text-primary">Try again</Text>
+              <Text className="text-sm font-medium text-primary">{t('common.retry')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -78,7 +83,7 @@ export default function ThemesScreen() {
                         {theme.name}
                       </Text>
                       <Text className="text-[11px] text-muted-foreground">
-                        {theme.indicatorCount} indicator{theme.indicatorCount === 1 ? '' : 's'}
+                        {t('themes.indicatorsCount', { n: theme.indicatorCount })}
                       </Text>
                     </View>
                   </View>
@@ -99,7 +104,7 @@ export default function ThemesScreen() {
                       className="rounded-lg bg-primary px-3 py-2 active:opacity-80"
                     >
                       <Text className="text-xs font-semibold text-primary-foreground">
-                        Explore Data
+                        {t('themes.exploreData')}
                       </Text>
                     </Pressable>
                     <Pressable
@@ -109,7 +114,7 @@ export default function ThemesScreen() {
                       className="rounded-lg border border-border bg-card px-3 py-2 active:bg-muted"
                     >
                       <Text className="text-xs font-semibold text-foreground">
-                        Compare Countries
+                        {t('themes.compareCountries')}
                       </Text>
                     </Pressable>
                   </View>

@@ -16,12 +16,15 @@ import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { AuthHeader } from '@/components/AuthHeader';
 import { AuthInput } from '@/components/AuthInput';
 import { AmbientBackground } from '@/components/AmbientBackground';
+import { LanguagePrompt } from '@/components/LanguagePrompt';
 import { useThemeColors } from '@/lib/theme-colors';
 import { notifyError, notifySuccess } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 
 export default function SignInScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -50,6 +53,7 @@ export default function SignInScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <AmbientBackground />
+      <LanguagePrompt />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
@@ -59,13 +63,13 @@ export default function SignInScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <AuthHeader
-            title="Welcome back"
-            subtitle="Sign in to access your dashboard and explore youth data."
+            title={t('auth.signIn')}
+            subtitle={t('auth.signInDesc')}
           />
 
           <View className="mt-8 gap-4">
             <AuthInput
-              label="Email"
+              label={t('auth.email')}
               leftIcon="mail-outline"
               value={email}
               onChangeText={setEmail}
@@ -77,15 +81,15 @@ export default function SignInScreen() {
             />
 
             <AuthInput
-              label="Password"
+              label={t('auth.password')}
               leftIcon="lock-closed-outline"
               value={password}
               onChangeText={setPassword}
               autoComplete="password"
-              placeholder="Enter your password"
+              placeholder={t('auth.passwordPlaceholder')}
               password
               rightAction={{
-                label: 'Forgot password?',
+                label: t('auth.forgotPassword'),
                 onPress: () => router.push('/(auth)/forgot-password'),
               }}
             />
@@ -105,7 +109,9 @@ export default function SignInScreen() {
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
                 <>
-                  <Text className="text-base font-semibold text-primary-foreground">Sign In</Text>
+                  <Text className="text-base font-semibold text-primary-foreground">
+                    {t('auth.signInCta')}
+                  </Text>
                   <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
                 </>
               )}
@@ -115,7 +121,7 @@ export default function SignInScreen() {
           <View className="mt-8 flex-row items-center">
             <View className="h-px flex-1 bg-border" />
             <Text className="mx-3 text-[10px] uppercase tracking-wider text-muted-foreground">
-              or continue with
+              {t('auth.orContinueWith')}
             </Text>
             <View className="h-px flex-1 bg-border" />
           </View>
@@ -134,10 +140,14 @@ export default function SignInScreen() {
           </View>
 
           <View className="mt-10 flex-row justify-center">
-            <Text className="text-sm text-muted-foreground">Don&rsquo;t have an account? </Text>
+            <Text className="text-sm text-muted-foreground">
+              {t('auth.noAccount')}{' '}
+            </Text>
             <Link href="/(auth)/sign-up" asChild>
               <Pressable hitSlop={6}>
-                <Text className="text-sm font-semibold text-primary">Create account</Text>
+                <Text className="text-sm font-semibold text-primary">
+                  {t('auth.createAccount')}
+                </Text>
               </Pressable>
             </Link>
           </View>

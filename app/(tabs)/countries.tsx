@@ -16,10 +16,12 @@ import { useCountryDirectory, type CountryListItem } from '@/lib/queries';
 import { REGIONS, tierColor, type Region } from '@/lib/country-helpers';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapLight } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 
 export default function CountriesScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const directory = useCountryDirectory();
@@ -59,8 +61,8 @@ export default function CountriesScreen() {
         }
       >
         <PageHeader
-          title="Country Profiles"
-          description="Explore detailed youth data profiles for African countries."
+          title={t('countries.title')}
+          description={t('countries.subtitle')}
         />
 
         <View className="px-5 pt-4">
@@ -69,7 +71,7 @@ export default function CountriesScreen() {
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Search countries..."
+              placeholder={t('countries.search')}
               placeholderTextColor={colors.mutedForeground}
               className="ml-2 flex-1 text-base text-foreground"
               autoCorrect={false}
@@ -89,16 +91,16 @@ export default function CountriesScreen() {
         {directory.isLoading && directory.items.length === 0 ? (
           <View className="items-center py-16">
             <ActivityIndicator color={colors.primary} />
-            <Text className="mt-3 text-sm text-muted-foreground">Loading countries…</Text>
+            <Text className="mt-3 text-sm text-muted-foreground">{t('common.loading')}</Text>
           </View>
         ) : directory.error && directory.items.length === 0 ? (
           <View className="items-center py-16">
             <Ionicons name="cloud-offline-outline" size={32} color={colors.mutedForeground} />
             <Text className="mt-2 text-sm text-muted-foreground">
-              Couldn&rsquo;t load countries.
+              {t('common.error')}
             </Text>
             <Pressable onPress={directory.refetch} className="mt-3">
-              <Text className="text-sm font-medium text-primary">Try again</Text>
+              <Text className="text-sm font-medium text-primary">{t('common.retry')}</Text>
             </Pressable>
           </View>
         ) : (

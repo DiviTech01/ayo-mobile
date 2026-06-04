@@ -15,26 +15,31 @@ import { useCountryDirectory, useYouthIndexRankings } from '@/lib/queries';
 import type { CountryListItem } from '@/lib/queries';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapSelection } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
 import type { YouthIndexScore } from '@/lib/api';
 
-type DimensionKey = 'overallScore' | 'educationScore' | 'employmentScore' | 'healthScore' | 'civicScore' | 'innovationScore';
+// Either the overall score or one of the 7 theme dimension slugs.
+type DimensionKey = 'overallScore' | string; // 'overallScore' | ThemeSlug
 
-const DIMENSIONS: { key: DimensionKey; label: string }[] = [
-  { key: 'overallScore', label: 'AYEMI overall' },
-  { key: 'educationScore', label: 'Education' },
-  { key: 'employmentScore', label: 'Employment' },
-  { key: 'healthScore', label: 'Health' },
-  { key: 'civicScore', label: 'Civic' },
-  { key: 'innovationScore', label: 'Innovation' },
+const DIMENSIONS: { key: DimensionKey; labelKey: string }[] = [
+  { key: 'overallScore',                       labelKey: 'compare.dim.overall' },
+  { key: 'youth-demography-participation',     labelKey: 'compare.dim.demography' },
+  { key: 'education',                          labelKey: 'compare.dim.education' },
+  { key: 'employment',                         labelKey: 'compare.dim.employment' },
+  { key: 'health',                             labelKey: 'compare.dim.health' },
+  { key: 'entrepreneurship',                   labelKey: 'compare.dim.entrepreneurship' },
+  { key: 'peace-security',                     labelKey: 'compare.dim.peaceSecurity' },
+  { key: 'access-to-justice',                  labelKey: 'compare.dim.accessToJustice' },
 ];
 
 const DEFAULT_COUNTRIES = ['Nigeria', 'Kenya', 'Ghana', 'South Africa'];
 
 export default function CompareScreen() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const directory = useCountryDirectory();
   const rankingsQ = useYouthIndexRankings();
 
@@ -62,7 +67,11 @@ export default function CompareScreen() {
         const c = directory.items.find((x) => x.id === id);
         const r = byId.get(id);
         if (!c) return null;
-        const value = r ? Number(r[dimension]) : 0;
+        const value = r
+          ? (dimension === 'overallScore'
+              ? Number(r.overallScore || 0)
+              : Number((r.dimensions as Record<string, number> | undefined)?.[dimension] ?? 0))
+          : 0;
         return {
           id,
           name: c.name,
@@ -80,9 +89,10 @@ export default function CompareScreen() {
   const max = rows.length > 0 ? Math.max(...rows.map((r) => r.value), 1) : 1;
 
   const onShare = async () => {
-    const dimLabel = DIMENSIONS.find((d) => d.key === dimension)?.label ?? 'AYEMI';
+    const dimKey = DIMENSIONS.find((d) => d.key === dimension)?.labelKey;
+    const dimLabel = dimKey ? t(dimKey) : 'AYEMI';
     const lines = [
-      `${dimLabel} — comparison via AfYO`,
+      t('compare.shareTitle', { dim: dimLabel }),
       ...rows.map((r, i) => `${i + 1}. ${r.name}: ${r.value.toFixed(1)}`),
       '',
       'African Youth Observatory · PACSDA',
@@ -102,8 +112,8 @@ export default function CompareScreen() {
 
       <ScrollView contentContainerClassName="pb-12">
         <PageHeader
-          title="Compare Countries"
-          description="Compare youth development indicators across multiple African countries. Analyze trends, identify gaps, and discover insights."
+          title={t('compare.title')}
+          description={t('compare.description')}
           icon="bar-chart"
           showBack
           rightAction={{ icon: 'share-outline', onPress: onShare }}
@@ -111,7 +121,7 @@ export default function CompareScreen() {
 
         <View className="p-5">
         <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Dimension
+          {t('compare.dimension')}
         </Text>
         <ScrollView
           horizontal
@@ -134,7 +144,7 @@ export default function CompareScreen() {
                   dimension === d.key ? 'text-primary-foreground' : 'text-foreground'
                 }`}
               >
-                {d.label}
+                {t(d.labelKey)}
               </Text>
             </Pressable>
           ))}
@@ -142,14 +152,14 @@ export default function CompareScreen() {
 
         <View className="mt-5 flex-row items-center justify-between">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Countries · {selectedIds.length}
+            {t('compare.countriesLabel', { n: selectedIds.length })}
           </Text>
           <Pressable
             onPress={() => setPickerOpen(true)}
             className="flex-row items-center gap-1 rounded-full border border-border bg-card px-3 py-1"
           >
             <Ionicons name="add" size={14} color={colors.primary} />
-            <Text className="text-xs font-semibold text-primary">Edit</Text>
+            <Text className="text-xs font-semibold text-primary">{t('common.edit')}</Text>
           </Pressable>
         </View>
 
@@ -160,7 +170,9 @@ export default function CompareScreen() {
             </View>
           ) : rows.length === 0 ? (
             <View className="items-center py-6">
-              <Text className="text-sm text-muted-foreground">No countries selected.</Text>
+              <Text className="text-sm text-muted-foreground">
+                {t('compare.noneSelected')}
+              </Text>
             </View>
           ) : (
             <View className="gap-4">
@@ -198,8 +210,7 @@ export default function CompareScreen() {
         </View>
 
         <Text className="mt-4 text-[11px] leading-4 text-muted-foreground">
-          Bars sized relative to the highest value among selected countries. Scores from
-          the {new Date().getFullYear() - 1} AYEMI rankings (0–100, higher is better).
+          {t('compare.barsNote', { year: new Date().getFullYear() - 1 })}
         </Text>
 
         <OpenOnWebLink href={webLinks.compare} />
@@ -230,6 +241,7 @@ function CountryPickerModal({
   onClose: () => void;
   onChange: (next: string[]) => void;
 }) {
+  const { t } = useTranslation();
   const toggle = (id: string) => {
     if (selected.includes(id)) {
       onChange(selected.filter((s) => s !== id));
@@ -246,10 +258,10 @@ function CountryPickerModal({
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
           <Text className="font-display text-base font-semibold text-foreground">
-            Pick countries · max 6
+            {t('compare.pickTitle')}
           </Text>
           <Pressable onPress={onClose} hitSlop={8}>
-            <Text className="text-sm font-semibold text-primary">Done</Text>
+            <Text className="text-sm font-semibold text-primary">{t('common.done')}</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerClassName="p-4">

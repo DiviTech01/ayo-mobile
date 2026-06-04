@@ -17,9 +17,11 @@ import { AuthInput } from '@/components/AuthInput';
 import { AmbientBackground } from '@/components/AmbientBackground';
 import { useThemeColors } from '@/lib/theme-colors';
 import { notifyError, notifySuccess } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 
 export default function ForgotPasswordScreen() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +53,11 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <AuthHeader
-            title={sent ? 'Check your inbox' : 'Reset your password'}
+            title={sent ? t('auth.checkInbox') : t('auth.resetTitle')}
             subtitle={
               sent
-                ? `We sent a reset link to ${email}. Tap the link to set a new password, then sign back in.`
-                : 'Enter your account email. We&rsquo;ll send a link to reset your password.'
+                ? t('auth.checkInboxDesc', { email })
+                : t('auth.resetDesc')
             }
           />
 
@@ -63,10 +65,12 @@ export default function ForgotPasswordScreen() {
             <View className="mt-8 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3.5">
               <View className="flex-row items-center gap-2">
                 <Ionicons name="mail-open-outline" size={18} color={colors.primary} />
-                <Text className="text-sm font-semibold text-primary">Email sent</Text>
+                <Text className="text-sm font-semibold text-primary">
+                  {t('auth.emailSent')}
+                </Text>
               </View>
               <Text className="mt-1.5 text-xs leading-5 text-foreground">
-                Didn&rsquo;t arrive? Check spam, or wait a minute and tap below to resend.
+                {t('auth.emailSentHelp')}
               </Text>
               <Pressable
                 onPress={() => {
@@ -75,13 +79,15 @@ export default function ForgotPasswordScreen() {
                 }}
                 className="mt-3 self-start rounded-lg border border-border bg-card px-3 py-1.5 active:bg-muted"
               >
-                <Text className="text-xs font-semibold text-foreground">Resend link</Text>
+                <Text className="text-xs font-semibold text-foreground">
+                  {t('auth.resendLink')}
+                </Text>
               </Pressable>
             </View>
           ) : (
             <View className="mt-8 gap-4">
               <AuthInput
-                label="Email"
+                label={t('auth.email')}
                 leftIcon="mail-outline"
                 value={email}
                 onChangeText={setEmail}
@@ -107,7 +113,7 @@ export default function ForgotPasswordScreen() {
                 ) : (
                   <>
                     <Text className="text-base font-semibold text-primary-foreground">
-                      Send reset link
+                      {t('auth.sendResetLink')}
                     </Text>
                     <Ionicons
                       name="arrow-forward"
@@ -124,7 +130,9 @@ export default function ForgotPasswordScreen() {
             <Link href="/(auth)/sign-in" asChild>
               <Pressable hitSlop={6} className="flex-row items-center gap-1">
                 <Ionicons name="arrow-back" size={14} color={colors.primary} />
-                <Text className="text-sm font-medium text-primary">Back to sign in</Text>
+                <Text className="text-sm font-medium text-primary">
+                  {t('auth.backToSignIn')}
+                </Text>
               </Pressable>
             </Link>
           </View>

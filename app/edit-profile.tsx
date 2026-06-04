@@ -14,11 +14,13 @@ import { Stack, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [organization, setOrganization] = useState('');
   const [email, setEmail] = useState('');
@@ -63,8 +65,8 @@ export default function EditProfileScreen() {
       setBusy(false);
       setError(
         err instanceof Error
-          ? `Saved on device, but couldn't sync to server: ${err.message}`
-          : 'Saved on device, but couldn’t sync to server.',
+          ? t('editProfile.syncErrorMsg', { msg: err.message })
+          : t('editProfile.syncError'),
       );
       return;
     }
@@ -84,31 +86,33 @@ export default function EditProfileScreen() {
       >
         <ScrollView contentContainerClassName="pb-12">
           <PageHeader
-            title="Edit Profile"
-            description="Update your name and organization. These appear on your account."
+            title={t('editProfile.title')}
+            description={t('editProfile.description')}
             showBack
           />
           <View className="p-5">
           <View className="rounded-2xl border border-border bg-card p-5">
             <Field
-              label="Full name"
+              label={t('auth.name')}
               value={name}
               onChangeText={setName}
-              placeholder="Your name"
+              placeholder={t('editProfile.namePlaceholder')}
             />
             <Field
-              label="Organization"
+              label={t('editProfile.organization')}
               value={organization}
               onChangeText={setOrganization}
-              placeholder="(optional)"
+              placeholder={t('editProfile.orgPlaceholder')}
             />
             <View className="mt-4">
-              <Text className="mb-1.5 text-sm font-medium text-foreground">Email</Text>
+              <Text className="mb-1.5 text-sm font-medium text-foreground">
+                {t('editProfile.email')}
+              </Text>
               <View className="rounded-xl border border-border bg-muted px-4 py-3">
                 <Text className="text-base text-muted-foreground">{email}</Text>
               </View>
               <Text className="mt-1 text-[11px] text-muted-foreground">
-                Email changes happen elsewhere.
+                {t('editProfile.emailNote')}
               </Text>
             </View>
           </View>
@@ -121,7 +125,7 @@ export default function EditProfileScreen() {
 
           {saved ? (
             <View className="mt-3 rounded-lg bg-primary/10 px-3 py-2">
-              <Text className="text-sm text-primary">Saved.</Text>
+              <Text className="text-sm text-primary">{t('editProfile.saved')}</Text>
             </View>
           ) : null}
 
@@ -134,7 +138,7 @@ export default function EditProfileScreen() {
               <ActivityIndicator color={colors.primaryForeground} />
             ) : (
               <Text className="text-center text-base font-semibold text-primary-foreground">
-                Save changes
+                {t('editProfile.saveChanges')}
               </Text>
             )}
           </Pressable>

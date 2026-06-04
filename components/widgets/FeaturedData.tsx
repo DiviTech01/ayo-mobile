@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/lib/theme-colors';
 import { tapLight } from '@/lib/haptics';
 
-type FeatureColor = 'green' | 'blue' | 'gold';
+type FeatureColor = 'green' | 'blue' | 'orange';
 
 type Feature = {
   title: string;
@@ -34,20 +34,17 @@ const FEATURES: Feature[] = [
   {
     title: 'Youth-led Entrepreneurship',
     description:
-      'Emerging trends in youth entrepreneurship and business formation.',
-    icon: 'bar-chart',
-    color: 'gold',
+      'Emerging trends in youth entrepreneurship and business formation across Africa.',
+    icon: 'trending-up',
+    color: 'orange',
     href: '/(tabs)/explore?theme=entrepreneurship',
   },
 ];
 
-const COLOR_MAP: Record<
-  FeatureColor,
-  { heroBg: string; iconColor: (c: ReturnType<typeof useThemeColors>) => string }
-> = {
-  green: { heroBg: 'bg-pan-green-500/15', iconColor: (c) => c.aydGreen },
-  blue: { heroBg: 'bg-pan-blue-500/15', iconColor: (c) => c.aydBlue },
-  gold: { heroBg: 'bg-pan-gold-500/15', iconColor: (c) => c.aydGold },
+const COLOR_RGB: Record<FeatureColor, string> = {
+  green: '34, 197, 94',
+  blue: '59, 130, 246',
+  orange: '249, 115, 22',
 };
 
 export function FeaturedData() {
@@ -55,42 +52,63 @@ export function FeaturedData() {
   const colors = useThemeColors();
 
   return (
-    <View className="gap-4">
+    <View className="gap-5">
       {FEATURES.map((f) => {
-        const tint = COLOR_MAP[f.color];
+        const rgb = COLOR_RGB[f.color];
         return (
-          <View key={f.title} className="overflow-hidden rounded-lg border border-border bg-card">
-            <View className={`aspect-video items-center justify-center ${tint.heroBg}`}>
-              <Ionicons name={f.icon} size={40} color={tint.iconColor(colors)} />
+          <Pressable
+            key={f.title}
+            onPress={() => {
+              tapLight();
+              router.push(f.href as unknown as Href);
+            }}
+            style={{
+              borderColor: `rgba(${rgb}, 0.2)`,
+              backgroundColor: 'rgba(255,255,255,0.03)',
+            }}
+            className="overflow-hidden rounded-2xl border p-5 active:opacity-90"
+          >
+            <View
+              style={{ backgroundColor: `rgba(${rgb}, 1)`, opacity: 0.6 }}
+              className="absolute left-0 right-0 top-0 h-px"
+            />
+
+            <View
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+              className="mb-4 h-12 w-12 items-center justify-center rounded-xl"
+            >
+              <Ionicons
+                name={f.icon}
+                size={22}
+                color={`rgb(${rgb})`}
+              />
             </View>
-            <View className="p-5">
-              <Text className="font-display text-lg font-bold text-foreground">{f.title}</Text>
-              <Text className="mt-2 text-sm leading-5 text-muted-foreground">
-                {f.description}
-              </Text>
-              <View className="mt-4 flex-row flex-wrap gap-2">
-                <Pressable
-                  onPress={() => {
-                    tapLight();
-                    router.push('/reports' as unknown as Href);
-                  }}
-                  className="flex-row items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 active:bg-muted"
-                >
-                  <Ionicons name="download-outline" size={14} color={colors.foreground} />
-                  <Text className="text-xs font-medium text-foreground">Download</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    tapLight();
-                    router.push(f.href as unknown as Href);
-                  }}
-                  className="rounded-md bg-primary px-3 py-1.5 active:opacity-80"
-                >
-                  <Text className="text-xs font-semibold text-primary-foreground">View Data</Text>
-                </Pressable>
+
+            <Text className="font-display text-lg font-semibold text-foreground" style={{ letterSpacing: -0.2 }}>
+              {f.title}
+            </Text>
+            <Text className="mt-2 text-sm leading-5 text-muted-foreground">
+              {f.description}
+            </Text>
+
+            <View className="mt-5 flex-row items-center justify-between">
+              <View className="flex-row items-center gap-1.5">
+                <Text className="text-sm text-muted-foreground">Explore</Text>
+                <Ionicons name="arrow-forward" size={14} color={colors.mutedForeground} />
               </View>
+              <Pressable
+                hitSlop={8}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  tapLight();
+                  router.push('/reports' as unknown as Href);
+                }}
+                className="h-8 w-8 items-center justify-center rounded-md active:bg-muted"
+              >
+                <Ionicons name="download-outline" size={16} color={colors.mutedForeground} />
+              </Pressable>
             </View>
-          </View>
+          </Pressable>
         );
       })}
     </View>

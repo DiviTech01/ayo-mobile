@@ -17,12 +17,14 @@ import { AuthHeader } from '@/components/AuthHeader';
 import { AmbientBackground } from '@/components/AmbientBackground';
 import { useThemeColors } from '@/lib/theme-colors';
 import { notifyError, notifySuccess } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 
 const RESEND_COOLDOWN_S = 30;
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,7 +46,7 @@ export default function VerifyOtpScreen() {
 
   const submit = async (token: string) => {
     if (!email) {
-      setError('Missing email — go back and try sign-up again.');
+      setError(t('auth.missingEmail'));
       return;
     }
     setBusy(true);
@@ -86,7 +88,7 @@ export default function VerifyOtpScreen() {
       return;
     }
     notifySuccess();
-    setInfo('A new code is on its way.');
+    setInfo(t('auth.newCodeSent'));
     setCooldown(RESEND_COOLDOWN_S);
   };
 
@@ -102,8 +104,8 @@ export default function VerifyOtpScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <AuthHeader
-            title="Verify your email"
-            subtitle={`We sent a 6-digit code to ${email ?? 'your email'}. Enter it to finish setting up your account.`}
+            title={t('auth.verifyEmail')}
+            subtitle={t('auth.verifyDesc', { email: email ?? t('auth.yourEmail') })}
           />
 
           <View className="mt-10">
@@ -130,7 +132,9 @@ export default function VerifyOtpScreen() {
             {busy ? (
               <View className="mt-4 flex-row items-center justify-center gap-2">
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text className="text-sm text-muted-foreground">Verifying…</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {t('auth.verifying')}
+                </Text>
               </View>
             ) : null}
 
@@ -167,19 +171,23 @@ export default function VerifyOtpScreen() {
                 }
               >
                 {resending
-                  ? 'Sending…'
+                  ? t('auth.sending')
                   : cooldown > 0
-                  ? `Resend code in ${cooldown}s`
-                  : 'Resend code'}
+                  ? t('auth.resendIn', { s: cooldown })
+                  : t('auth.resendCode')}
               </Text>
             </Pressable>
           </View>
 
           <View className="mt-10 flex-row justify-center">
-            <Text className="text-sm text-muted-foreground">Wrong email? </Text>
+            <Text className="text-sm text-muted-foreground">
+              {t('auth.wrongEmail')}{' '}
+            </Text>
             <Link href="/(auth)/sign-up" asChild>
               <Pressable hitSlop={6}>
-                <Text className="text-sm font-semibold text-primary">Start over</Text>
+                <Text className="text-sm font-semibold text-primary">
+                  {t('auth.startOver')}
+                </Text>
               </Pressable>
             </Link>
           </View>

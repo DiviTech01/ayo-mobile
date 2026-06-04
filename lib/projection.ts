@@ -4,7 +4,7 @@ type Polygon = Ring[];
 type GeometryCoords = Polygon | Polygon[];
 
 export const AFRICA_BBOX = { minLon: -19, maxLon: 53, minLat: -36, maxLat: 38 };
-export const MAP_VIEW = { width: 360, height: 400 };
+export const MAP_VIEW = { width: 360, height: 480 };
 
 export function project(lon: number, lat: number) {
   const { minLon, maxLon, minLat, maxLat } = AFRICA_BBOX;

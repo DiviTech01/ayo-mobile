@@ -14,17 +14,18 @@ import { useReports } from '@/lib/queries';
 import { documentDownloadUrl } from '@/lib/api';
 import type { DocumentSummary } from '@/lib/api';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
 import { tapLight } from '@/lib/haptics';
 
-const TYPE_TINT: Record<string, { bg: string; text: string; label: string }> = {
-  PKPB_REPORT: { bg: 'bg-pan-green-50', text: 'text-pan-green-700', label: 'PKPB' },
-  POLICY_BRIEF: { bg: 'bg-pan-red-50', text: 'text-pan-red-700', label: 'Policy' },
-  RESEARCH_PAPER: { bg: 'bg-pan-blue-50', text: 'text-pan-blue-700', label: 'Research' },
-  PRESENTATION: { bg: 'bg-pan-gold-50', text: 'text-pan-gold-700', label: 'Slides' },
-  OTHER: { bg: 'bg-muted', text: 'text-muted-foreground', label: 'Doc' },
+const TYPE_TINT: Record<string, { bg: string; text: string; labelKey: string }> = {
+  PKPB_REPORT: { bg: 'bg-pan-green-50', text: 'text-pan-green-700', labelKey: 'reports.type.pkpb' },
+  POLICY_BRIEF: { bg: 'bg-pan-red-50', text: 'text-pan-red-700', labelKey: 'reports.type.policy' },
+  RESEARCH_PAPER: { bg: 'bg-pan-blue-50', text: 'text-pan-blue-700', labelKey: 'reports.type.research' },
+  PRESENTATION: { bg: 'bg-pan-gold-50', text: 'text-pan-gold-700', labelKey: 'reports.type.slides' },
+  OTHER: { bg: 'bg-muted', text: 'text-muted-foreground', labelKey: 'reports.type.doc' },
 };
 
 function formatDate(iso: string) {
@@ -38,6 +39,7 @@ function formatDate(iso: string) {
 
 export default function ReportsScreen() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const q = useReports();
 
@@ -64,8 +66,8 @@ export default function ReportsScreen() {
 
       <ScrollView contentContainerClassName="pb-12">
         <PageHeader
-          title="Reports & Publications"
-          description="Access our latest reports, thematic briefs, and data publications on African youth development."
+          title={t('reports.title')}
+          description={t('reports.description')}
           showBack
         />
 
@@ -75,7 +77,7 @@ export default function ReportsScreen() {
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Search reports"
+              placeholder={t('reports.search')}
               placeholderTextColor={colors.mutedForeground}
               className="ml-2 flex-1 text-base text-foreground"
               autoCorrect={false}
@@ -86,9 +88,9 @@ export default function ReportsScreen() {
         {q.isLoading ? (
           <SkeletonList />
         ) : q.error ? (
-          <ErrorState onRetry={() => q.refetch()} />
+          <ErrorState onRetry={() => q.refetch()} t={t} />
         ) : filtered.length === 0 ? (
-          <EmptyState search={search} />
+          <EmptyState search={search} t={t} />
         ) : (
           <>
           <View className="mt-4 gap-2.5">
@@ -118,7 +120,7 @@ export default function ReportsScreen() {
                       <View className="mt-1.5 flex-row items-center gap-2 flex-wrap">
                         <View className={`rounded-full px-2 py-0.5 ${tint.bg}`}>
                           <Text className={`text-[10px] font-semibold uppercase ${tint.text}`}>
-                            {tint.label}
+                            {t(tint.labelKey)}
                           </Text>
                         </View>
                         <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
@@ -159,26 +161,40 @@ function SkeletonList() {
   );
 }
 
-function ErrorState({ onRetry }: { onRetry: () => void }) {
+function ErrorState({
+  onRetry,
+  t,
+}: {
+  onRetry: () => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
   const colors = useThemeColors();
   return (
     <View className="mt-8 items-center rounded-2xl border border-border bg-card p-6">
       <Ionicons name="cloud-offline-outline" size={32} color={colors.mutedForeground} />
-      <Text className="mt-2 text-sm text-foreground">Couldn&rsquo;t load reports</Text>
+      <Text className="mt-2 text-sm text-foreground">{t('reports.loadError')}</Text>
       <Pressable onPress={onRetry} className="mt-3 rounded-lg bg-primary px-4 py-2">
-        <Text className="text-sm font-medium text-primary-foreground">Try again</Text>
+        <Text className="text-sm font-medium text-primary-foreground">
+          {t('common.retry')}
+        </Text>
       </Pressable>
     </View>
   );
 }
 
-function EmptyState({ search }: { search: string }) {
+function EmptyState({
+  search,
+  t,
+}: {
+  search: string;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
   const colors = useThemeColors();
   return (
     <View className="mt-8 items-center py-10">
       <Ionicons name="folder-open-outline" size={32} color={colors.mutedForeground} />
       <Text className="mt-2 text-sm text-muted-foreground">
-        {search ? `No reports match "${search}"` : 'No reports in the library yet.'}
+        {search ? t('reports.noMatch', { search }) : t('reports.empty')}
       </Text>
     </View>
   );

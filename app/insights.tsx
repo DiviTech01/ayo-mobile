@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAnomalies, useCorrelations } from '@/lib/queries';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
@@ -13,6 +14,7 @@ type Tab = 'anomalies' | 'correlations';
 
 export default function InsightsScreen() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('anomalies');
   const [year, setYear] = useState(2024);
 
@@ -41,19 +43,19 @@ export default function InsightsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView contentContainerClassName="pb-10">
         <PageHeader
-          title="AI-Powered Insights"
-          description="Intelligent analysis of youth development trends, patterns, and recommendations across 54 African countries."
+          title={t('insights.title')}
+          description={t('insights.description')}
           icon="sparkles"
           showBack
         />
 
         <View className="p-4">
         <View className="flex-row gap-2 mb-4">
-          <SummaryStat label="Signals" value={summary.total} icon="sparkles" tint="primary" />
-          <SummaryStat label="Critical" value={summary.critical} icon="warning" tint="red" />
-          <SummaryStat label="Positive" value={summary.positive} icon="trophy" tint="green" />
+          <SummaryStat label={t('insights.signals')} value={summary.total} icon="sparkles" tint="primary" />
+          <SummaryStat label={t('insights.critical')} value={summary.critical} icon="warning" tint="red" />
+          <SummaryStat label={t('insights.positive')} value={summary.positive} icon="trophy" tint="green" />
           <SummaryStat
-            label="Correlations"
+            label={t('insights.correlations')}
             value={summary.correlations}
             icon="link"
             tint="gold"
@@ -61,9 +63,9 @@ export default function InsightsScreen() {
         </View>
 
         <View className="mb-3 flex-row gap-2">
-          <TabPill label="Anomalies" active={tab === 'anomalies'} onPress={() => setTab('anomalies')} />
+          <TabPill label={t('insights.anomalies')} active={tab === 'anomalies'} onPress={() => setTab('anomalies')} />
           <TabPill
-            label="Correlations"
+            label={t('insights.correlations')}
             active={tab === 'correlations'}
             onPress={() => setTab('correlations')}
           />
@@ -97,16 +99,16 @@ export default function InsightsScreen() {
           </View>
         ) : tab === 'anomalies' ? (
           anomalies.length === 0 ? (
-            <EmptyState text={`No anomalies recorded for ${year}.`} />
+            <EmptyState text={t('insights.noAnomalies', { year })} />
           ) : (
             <View className="gap-3">
               {anomalies.map((a, i) => (
-                <AnomalyCard key={`${a.countryId}-${a.indicatorId}-${i}`} anomaly={a} />
+                <AnomalyCard key={`${a.countryId}-${a.indicatorId}-${i}`} anomaly={a} t={t} />
               ))}
             </View>
           )
         ) : correlations.length === 0 ? (
-          <EmptyState text="No strong correlations detected yet." />
+          <EmptyState text={t('insights.noCorrelations')} />
         ) : (
           <View className="gap-3">
             {correlations.map((c, i) => (
@@ -179,7 +181,13 @@ function SummaryStat({
   );
 }
 
-function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
+function AnomalyCard({
+  anomaly,
+  t,
+}: {
+  anomaly: Anomaly;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
   const colors = useThemeColors();
   const sev =
     anomaly.severity === 'critical'
@@ -200,7 +208,7 @@ function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
             <View className="flex-row items-center gap-2 flex-wrap mb-1.5">
               <View className={`rounded-full px-2 py-0.5 ${sev.bgClass}`}>
                 <Text className={`text-[10px] font-semibold uppercase ${sev.textClass}`}>
-                  {anomaly.severity}
+                  {t(`insights.sev.${anomaly.severity}`)}
                 </Text>
               </View>
               <Text className="text-[10px] text-muted-foreground">
@@ -220,7 +228,7 @@ function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
                 {anomaly.value.toFixed(2)}
               </Text>
               <Text className="text-[10px] text-muted-foreground">
-                vs mean {anomaly.mean.toFixed(2)}
+                {t('insights.vsMean', { mean: anomaly.mean.toFixed(2) })}
               </Text>
             </View>
           </View>

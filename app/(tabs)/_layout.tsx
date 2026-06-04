@@ -2,9 +2,11 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useTranslation } from '@/lib/i18n';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -30,19 +32,23 @@ function tabIcon(active: IoniconsName, inactive: IoniconsName) {
 
 export default function TabLayout() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 12);
 
   return (
     <Tabs
       screenOptions={{
+        sceneStyle: { backgroundColor: colors.background },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
-          height: Platform.OS === 'ios' ? 84 : 64,
+          height: 58 + bottomInset,
           paddingTop: 6,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingBottom: bottomInset,
         },
         headerShown: false,
         tabBarButton: HapticTab,
@@ -57,35 +63,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('tabs.home'),
           tabBarIcon: tabIcon('home', 'home-outline'),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: t('tabs.explore'),
           tabBarIcon: tabIcon('map', 'map-outline'),
         }}
       />
       <Tabs.Screen
         name="countries"
         options={{
-          title: 'Countries',
+          title: t('tabs.countries'),
           tabBarIcon: tabIcon('grid', 'grid-outline'),
         }}
       />
       <Tabs.Screen
         name="ai"
         options={{
-          title: 'Ask AI',
+          title: t('tabs.ai'),
           tabBarIcon: tabIcon('sparkles', 'sparkles-outline'),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('tabs.profile'),
           tabBarIcon: tabIcon('person', 'person-outline'),
         }}
       />
