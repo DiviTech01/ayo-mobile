@@ -24,7 +24,14 @@ export default function PinSetupScreen() {
   useEffect(() => {
     if (step === 'confirm' && confirm.length === 4) {
       if (confirm === first) {
-        savePin(first).then(() => router.back());
+        savePin(first)
+          .then(() => router.back())
+          .catch((e: unknown) => {
+            setError((e as Error)?.message || 'Could not save PIN. Please try again.');
+            setFirst('');
+            setConfirm('');
+            setStep('create');
+          });
       } else {
         setError('PINs did not match. Try again.');
         setFirst('');

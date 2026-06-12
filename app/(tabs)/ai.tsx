@@ -261,8 +261,10 @@ export default function AskAIScreen() {
               placeholderTextColor={colors.mutedForeground}
               multiline
               className="max-h-32 flex-1 px-3 py-2 text-[15px] text-foreground"
+              returnKeyType="send"
               onSubmitEditing={() => send(draft)}
               blurOnSubmit={false}
+              submitBehavior="submit"
             />
             <Pressable
               onPress={() => send(draft)}

@@ -93,29 +93,31 @@ export default function GlossaryScreen() {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2 px-4 pb-2"
-      >
-        {CATEGORIES.map((c) => (
-          <Pressable
-            key={c}
-            onPress={() => setCategory(c)}
-            className={`rounded-full px-3 py-1.5 border ${
-              category === c ? 'bg-primary border-primary' : 'bg-card border-border'
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                category === c ? 'text-primary-foreground' : 'text-foreground'
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="gap-2 px-4 pb-2"
+        >
+          {CATEGORIES.map((c) => (
+            <Pressable
+              key={c}
+              onPress={() => setCategory(c)}
+              className={`shrink-0 rounded-full px-3 py-1 border ${
+                category === c ? 'bg-primary border-primary' : 'bg-card border-border'
               }`}
             >
-              {t(CATEGORY_KEY[c])}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+              <Text
+                className={`text-xs font-semibold ${
+                  category === c ? 'text-primary-foreground' : 'text-foreground'
+                }`}
+              >
+                {t(CATEGORY_KEY[c])}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       <ScrollView contentContainerClassName="p-4 pb-10 gap-3">
         {filtered.map((item) => (

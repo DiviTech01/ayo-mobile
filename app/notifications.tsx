@@ -5,23 +5,20 @@ import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/PageHeader';
 import { useThemeColors } from '@/lib/theme-colors';
-import { tapLight, notifySuccess } from '@/lib/haptics';
+import { tapLight } from '@/lib/haptics';
 import { useTranslation } from '@/lib/i18n';
 import {
   CATEGORY_META,
   ensurePushRegistered,
   getPermissionStatus,
-  sendTestNotification,
   useNotificationPrefs,
 } from '@/lib/notifications';
 
 export default function NotificationsScreen() {
-  const colors = useThemeColors();
   const { t } = useTranslation();
   const { prefs, setEnabled, setCategory } = useNotificationPrefs();
   const [permission, setPermission] = useState<string>('undetermined');
   const [remoteUnavailable, setRemoteUnavailable] = useState(false);
-  const [testSent, setTestSent] = useState(false);
 
   const refreshPermission = async () => {
     const status = await getPermissionStatus();
@@ -36,17 +33,6 @@ export default function NotificationsScreen() {
     tapLight();
     const res = await ensurePushRegistered();
     setRemoteUnavailable(res.remoteUnavailable);
-    await refreshPermission();
-  };
-
-  const onTest = async () => {
-    tapLight();
-    const ok = await sendTestNotification();
-    if (ok) {
-      notifySuccess();
-      setTestSent(true);
-      setTimeout(() => setTestSent(false), 3000);
-    }
     await refreshPermission();
   };
 
@@ -132,21 +118,6 @@ export default function NotificationsScreen() {
               </View>
             ))}
           </View>
-
-          {/* Test */}
-          <Pressable
-            onPress={onTest}
-            className="mt-7 flex-row items-center justify-center gap-2 rounded-xl border border-border bg-card py-3.5 active:bg-muted"
-          >
-            <Ionicons
-              name={testSent ? 'checkmark-circle' : 'paper-plane-outline'}
-              size={16}
-              color={testSent ? colors.aydGreen : colors.foreground}
-            />
-            <Text className="text-[14px] font-semibold text-foreground">
-              {testSent ? t('common.saved') : t('notif.sendTest')}
-            </Text>
-          </Pressable>
 
           {remoteUnavailable ? (
             <Text className="mt-4 px-1 text-[11px] leading-4 text-muted-foreground">

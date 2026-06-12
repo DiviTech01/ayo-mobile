@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
+import { LEGAL_LINKS } from '@/lib/legal';
 import {
+  authenticateWithBiometrics,
   biometricAvailable,
   clearPin,
   hasPin,
@@ -41,9 +44,14 @@ export default function SettingsScreen() {
     setBioSupported(await biometricAvailable());
   };
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  // Refresh on every focus (not just first mount) so that returning from the
+  // /pin-setup modal re-reads hasPin() — otherwise the PIN toggle stays "off"
+  // even though the PIN saved, which looked like "setting a PIN doesn't work".
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, []),
+  );
 
   const togglePin = async (value: boolean) => {
     if (value) {
@@ -77,8 +85,20 @@ export default function SettingsScreen() {
       );
       return;
     }
+    // Enabling: prompt the device's Face ID / fingerprint once so the user
+    // actually confirms it works before we turn it on. Disabling needs no prompt.
+    if (value) {
+      const ok = await authenticateWithBiometrics();
+      if (!ok) return; // cancelled or failed — leave it off
+    }
     await setBiometricEnabled(value);
     setBioOn(value);
+  };
+
+  const openLegal = (url: string) => {
+    openBrowserAsync(url, {
+      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    }).catch(() => undefined);
   };
 
   const onSignOut = async () => {
@@ -213,8 +233,20 @@ export default function SettingsScreen() {
           <Divider />
           <NavRow
             icon="shield-checkmark-outline"
-            label={t('profile.privacyTerms')}
-            onPress={() => router.push('/about' as unknown as Href)}
+            label={t('profile.privacyPolicy')}
+            onPress={() => openLegal(LEGAL_LINKS.privacy)}
+          />
+          <Divider />
+          <NavRow
+            icon="document-text-outline"
+            label={t('profile.termsOfService')}
+            onPress={() => openLegal(LEGAL_LINKS.terms)}
+          />
+          <Divider />
+          <NavRow
+            icon="ribbon-outline"
+            label={t('profile.dataLicensing')}
+            onPress={() => openLegal(LEGAL_LINKS.dataLicensing)}
           />
         </View>
 

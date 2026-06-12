@@ -1,11 +1,21 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAnomalies, useCorrelations } from '@/lib/queries';
+import * as WebBrowser from 'expo-web-browser';
+import {
+  useAnomalies,
+  useCorrelations,
+  useCountries,
+  useGenerateInsightReport,
+  useThemes,
+} from '@/lib/queries';
+import { insightReportDownloadUrl } from '@/lib/api';
 import { useThemeColors } from '@/lib/theme-colors';
+import { tapLight, tapSelection } from '@/lib/haptics';
 import { useTranslation } from '@/lib/i18n';
 import { PageHeader } from '@/components/PageHeader';
+import { Markdown } from '@/components/Markdown';
 import { OpenOnWebLink } from '@/components/OpenOnWebLink';
 import { webLinks } from '@/lib/web-links';
 import type { Anomaly, Correlation } from '@/lib/api';
@@ -117,10 +127,305 @@ export default function InsightsScreen() {
           </View>
         )}
 
+        <ReportGenerator />
+
         <OpenOnWebLink href={webLinks.insights} />
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+type Scope = 'continental' | 'country' | 'theme';
+
+function ReportGenerator() {
+  const colors = useThemeColors();
+  const { t } = useTranslation();
+  const [scope, setScope] = useState<Scope>('continental');
+  const [countryId, setCountryId] = useState<string | null>(null);
+  const [themeId, setThemeId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const countriesQ = useCountries();
+  const themesQ = useThemes();
+  const gen = useGenerateInsightReport();
+  const report = gen.data;
+
+  const countries = useMemo(
+    () => (Array.isArray(countriesQ.data) ? [...countriesQ.data].sort((a, b) => a.name.localeCompare(b.name)) : []),
+    [countriesQ.data],
+  );
+  const themes = useMemo(
+    () => (Array.isArray(themesQ.data) ? themesQ.data : []),
+    [themesQ.data],
+  );
+
+  const selectedCountry = countries.find((c) => c.id === countryId) ?? null;
+  const selectedTheme = themes.find((t2) => t2.id === themeId) ?? null;
+
+  const needsCountry = scope === 'country';
+  const needsTheme = scope === 'theme';
+  const canGenerate =
+    !gen.isPending &&
+    (!needsCountry || !!countryId) &&
+    (!needsTheme || !!themeId);
+
+  const SCOPES: { id: Scope; labelKey: string }[] = [
+    { id: 'continental', labelKey: 'insights.report.scope.continental' },
+    { id: 'country', labelKey: 'insights.report.scope.country' },
+    { id: 'theme', labelKey: 'insights.report.scope.theme' },
+  ];
+
+  const onGenerate = () => {
+    if (!canGenerate) return;
+    tapLight();
+    gen.mutate({
+      scope,
+      countryId: needsCountry ? countryId ?? undefined : undefined,
+      themeId: needsTheme ? themeId ?? undefined : undefined,
+    });
+  };
+
+  const onDownload = async () => {
+    if (!report) return;
+    tapLight();
+    try {
+      await WebBrowser.openBrowserAsync(insightReportDownloadUrl(report.id));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <View className="mt-8 rounded-2xl border border-border bg-card p-4">
+      <View className="flex-row items-center gap-2">
+        <View className="h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+          <Ionicons name="document-text" size={16} color={colors.primary} />
+        </View>
+        <Text className="flex-1 font-display text-base font-bold text-foreground">
+          {t('insights.report.title')}
+        </Text>
+      </View>
+      <Text className="mt-2 text-[12px] leading-4 text-muted-foreground">
+        {t('insights.report.subtitle')}
+      </Text>
+
+      {/* Scope picker */}
+      <View className="mt-4 flex-row gap-2">
+        {SCOPES.map((s) => {
+          const active = scope === s.id;
+          return (
+            <Pressable
+              key={s.id}
+              onPress={() => {
+                tapSelection();
+                setScope(s.id);
+              }}
+              className={`flex-1 rounded-full border px-3 py-2 ${
+                active ? 'border-primary bg-primary/15' : 'border-border bg-card'
+              }`}
+            >
+              <Text
+                className="text-center text-[12px] font-semibold"
+                style={{ color: active ? colors.primary : colors.foreground }}
+              >
+                {t(s.labelKey)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Country / theme selector */}
+      {needsCountry || needsTheme ? (
+        <Pressable
+          onPress={() => {
+            tapLight();
+            setPickerOpen(true);
+          }}
+          className="mt-3 flex-row items-center justify-between rounded-xl border border-border bg-card px-3 py-3 active:bg-muted"
+        >
+          <Text className="text-sm text-foreground" numberOfLines={1}>
+            {needsCountry
+              ? selectedCountry
+                ? `${selectedCountry.flagEmoji ?? ''} ${selectedCountry.name}`.trim()
+                : t('insights.report.pickCountry')
+              : selectedTheme
+              ? selectedTheme.name
+              : t('insights.report.pickTheme')}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
+        </Pressable>
+      ) : null}
+
+      {/* Generate button */}
+      <Pressable
+        onPress={onGenerate}
+        disabled={!canGenerate}
+        className={`mt-4 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3 ${
+          canGenerate ? 'bg-primary active:opacity-80' : 'bg-muted'
+        }`}
+      >
+        {gen.isPending ? (
+          <ActivityIndicator color={colors.primaryForeground} size="small" />
+        ) : (
+          <Ionicons
+            name="sparkles"
+            size={15}
+            color={canGenerate ? colors.primaryForeground : colors.mutedForeground}
+          />
+        )}
+        <Text
+          className="text-sm font-semibold"
+          style={{ color: canGenerate ? colors.primaryForeground : colors.mutedForeground }}
+        >
+          {gen.isPending ? t('insights.report.generating') : t('insights.report.generate')}
+        </Text>
+      </Pressable>
+
+      {gen.isError ? (
+        <Text className="mt-3 text-center text-[12px] text-destructive">
+          {t('insights.report.error')}
+        </Text>
+      ) : null}
+
+      {/* Rendered report */}
+      {report ? (
+        <View className="mt-5 border-t border-border/60 pt-4">
+          <Text className="font-display text-lg font-bold text-foreground">
+            {report.title}
+          </Text>
+          {report.summary ? (
+            <View className="mt-2">
+              <Markdown text={report.summary} />
+            </View>
+          ) : null}
+
+          {Array.isArray(report.sections)
+            ? report.sections.map((section, i) => (
+                <View key={i} className="mt-4">
+                  {section.heading ? (
+                    <Text className="mb-1 font-display text-base font-bold text-foreground">
+                      {section.heading}
+                    </Text>
+                  ) : null}
+                  <Markdown text={section.body ?? ''} />
+                </View>
+              ))
+            : null}
+
+          {report.source ? (
+            <Text className="mt-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+              {t('insights.report.sourceLabel')}: {report.source}
+            </Text>
+          ) : null}
+
+          <View className="mt-4 flex-row gap-2">
+            <Pressable
+              onPress={onDownload}
+              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 active:opacity-80"
+            >
+              <Ionicons name="open-outline" size={15} color={colors.primary} />
+              <Text className="text-sm font-semibold text-primary">
+                {t('insights.report.download')}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                tapLight();
+                gen.reset();
+              }}
+              className="flex-row items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 active:bg-muted"
+            >
+              <Ionicons name="refresh" size={15} color={colors.foreground} />
+              <Text className="text-sm font-semibold text-foreground">
+                {t('insights.report.regenerate')}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      <ReportPickerModal
+        open={pickerOpen}
+        mode={needsCountry ? 'country' : 'theme'}
+        items={
+          needsCountry
+            ? countries.map((c) => ({ id: c.id, label: `${c.flagEmoji ?? ''} ${c.name}`.trim() }))
+            : themes.map((th) => ({ id: th.id, label: th.name }))
+        }
+        selectedId={needsCountry ? countryId : themeId}
+        onSelect={(id) => {
+          if (needsCountry) setCountryId(id);
+          else setThemeId(id);
+          setPickerOpen(false);
+        }}
+        onClose={() => setPickerOpen(false)}
+      />
+    </View>
+  );
+}
+
+function ReportPickerModal({
+  open,
+  mode,
+  items,
+  selectedId,
+  onSelect,
+  onClose,
+}: {
+  open: boolean;
+  mode: 'country' | 'theme';
+  items: { id: string; label: string }[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const colors = useThemeColors();
+  const { t } = useTranslation();
+  return (
+    <Modal visible={open} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
+          <Text className="font-display text-base font-semibold text-foreground">
+            {mode === 'country'
+              ? t('insights.report.pickCountry')
+              : t('insights.report.pickTheme')}
+          </Text>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Text className="text-sm font-semibold text-primary">{t('common.done')}</Text>
+          </Pressable>
+        </View>
+        <ScrollView contentContainerClassName="p-4 gap-1.5">
+          {items.map((item) => {
+            const active = item.id === selectedId;
+            return (
+              <Pressable
+                key={item.id}
+                onPress={() => {
+                  tapSelection();
+                  onSelect(item.id);
+                }}
+                className={`flex-row items-center justify-between rounded-xl px-3 py-3 ${
+                  active ? 'bg-primary/15' : 'bg-card'
+                }`}
+              >
+                <Text
+                  className="flex-1 text-sm font-medium"
+                  style={{ color: active ? colors.primary : colors.foreground }}
+                  numberOfLines={1}
+                >
+                  {item.label}
+                </Text>
+                {active ? (
+                  <Ionicons name="checkmark" size={16} color={colors.primary} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 

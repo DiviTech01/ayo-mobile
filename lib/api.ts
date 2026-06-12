@@ -287,6 +287,29 @@ export interface DocumentSummary {
   createdAt: string;
 }
 
+export interface InsightReportSection {
+  heading: string;
+  body: string;
+}
+
+export interface InsightReport {
+  id: string;
+  scope: 'continental' | 'country' | 'theme';
+  title: string;
+  summary: string;
+  sections: InsightReportSection[];
+  html: string;
+  source: 'ai' | 'rule-based' | string;
+  createdAt: string;
+}
+
+export interface GenerateInsightReportPayload {
+  scope: 'continental' | 'country' | 'theme';
+  countryId?: string;
+  themeId?: string;
+  year?: number;
+}
+
 export interface CountryReportOverlay {
   ayemiScore?: number | null;
   ayemiTier?: 'Critical' | 'Developing' | 'Fulfilling' | null;
@@ -391,6 +414,13 @@ export const api = {
       ),
   },
 
+  insightReports: {
+    generate: async (payload: GenerateInsightReportPayload): Promise<InsightReport> => {
+      const res = await http.post<InsightReport>('/insight-reports/generate', payload);
+      return res.data;
+    },
+  },
+
   experts: {
     list: (params?: { country?: string; specialization?: string; search?: string }) =>
       getList<Expert>('/experts', params),
@@ -439,4 +469,8 @@ export const api = {
 
 export function documentDownloadUrl(id: string, disposition: 'attachment' | 'inline' = 'inline') {
   return `${API_URL}/documents/${id}/download?disposition=${disposition}`;
+}
+
+export function insightReportDownloadUrl(id: string) {
+  return `${API_URL}/insight-reports/${id}/download`;
 }

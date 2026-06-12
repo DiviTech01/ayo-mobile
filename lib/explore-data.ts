@@ -1,6 +1,8 @@
 /**
- * Mirrors the web Explore page's constants and mock generators so mobile chart
- * output matches the web for the same (country, indicator, yearRange) input.
+ * Constants for the Explore page (country/theme/indicator/year-range pickers)
+ * plus pure stat helpers (linearRegression, computeSummary) used to summarise
+ * the LIVE /api/data/timeseries rows that DataChart fetches. No mock data is
+ * generated or rendered anywhere — charts are backed by the real API.
  */
 
 export const ALL_COUNTRIES = 'All Countries';
@@ -180,52 +182,6 @@ export const GENDERS: { id: 'all' | 'male' | 'female'; label: string }[] = [
 ];
 
 export type ChartPoint = { year: string; value: number };
-
-function seededRandom(seed: number) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-}
-
-export function generateMockData(
-  indicator: string,
-  yearRange: [number, number],
-  country: string,
-): ChartPoint[] {
-  const [startYear, endYear] = yearRange;
-  const seed = indicator.length * 7 + country.length * 13 + startYear + endYear;
-
-  let base = 45;
-  let variance = 15;
-  let trend = 1.2;
-  const lower = indicator.toLowerCase();
-
-  if (lower.includes('unemployment') || lower.includes('poverty')) {
-    base = 35;
-    variance = 8;
-    trend = -0.6;
-  } else if (lower.includes('enrollment') || lower.includes('literacy')) {
-    base = 55;
-    variance = 10;
-    trend = 1.5;
-  } else if (lower.includes('population') || lower.includes('growth')) {
-    base = 2.5;
-    variance = 0.4;
-    trend = 0.05;
-  } else if (lower.includes('employment') || lower.includes('participation')) {
-    base = 40;
-    variance = 12;
-    trend = 0.9;
-  }
-
-  const data: ChartPoint[] = [];
-  for (let year = startYear; year <= endYear; year++) {
-    const idx = year - startYear;
-    const noise = (seededRandom(seed + idx * 31) - 0.5) * variance;
-    const value = Math.max(0, Math.round((base + trend * idx + noise) * 10) / 10);
-    data.push({ year: year.toString(), value });
-  }
-  return data;
-}
 
 export function linearRegression(data: ChartPoint[]) {
   const n = data.length;

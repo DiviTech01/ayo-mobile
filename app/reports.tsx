@@ -44,7 +44,9 @@ export default function ReportsScreen() {
   const q = useReports();
 
   const filtered = useMemo(() => {
-    const list = Array.isArray(q.data) ? q.data : [];
+    // Exclude PKPB country reports — they live on their own pages. This screen
+    // mirrors the web "Reports & Publications": briefs, research, data pubs.
+    const list = (Array.isArray(q.data) ? q.data : []).filter((r) => r.type !== 'PKPB_REPORT');
     const qq = search.trim().toLowerCase();
     if (!qq) return list;
     return list.filter(

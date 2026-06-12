@@ -20,7 +20,12 @@ const DEEP_LINK = Linking.createURL('auth-callback');
 // (e.g. for a staging deploy). Falls back to the production Cloudflare
 // Pages URL otherwise.
 const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://african-youth-observatory.pages.dev';
-const REDIRECT_URI = `${WEB_URL}/auth-callback?from=mobile`;
+// Hand the bridge our ACTUAL return deep link so it can bounce back to the
+// right scheme. In Expo Go that's `exp://<lan-ip>:8081/--/auth-callback`; in a
+// dev/production build it's `afyo://auth-callback`. Without this the bridge
+// fell back to a hardcoded `afyo://`, which Expo Go can't open (different
+// scheme) — so the "Open the app" button did nothing during development.
+const REDIRECT_URI = `${WEB_URL}/auth-callback?from=mobile&return=${encodeURIComponent(DEEP_LINK)}`;
 
 // Diagnostics — only emit in __DEV__ so prod builds stay quiet.
 const debug = (...args: unknown[]) => {

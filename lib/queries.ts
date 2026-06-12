@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from './api';
-import type { Country, YouthIndexScore } from './api';
+import type { Country, GenerateInsightReportPayload, InsightReport, YouthIndexScore } from './api';
 import { slugify } from './country-helpers';
 
 export interface CountryListItem extends Country {
@@ -88,10 +88,14 @@ export function useExperts(params?: { search?: string; specialization?: string; 
   });
 }
 
+// Reports & Publications list — mirrors the web page: latest reports, thematic
+// briefs, data publications. PKPB country reports are excluded (they have their
+// own pages); the screen filters them out, so the piping is identical for every
+// other type as soon as one is uploaded.
 export function useReports() {
   return useQuery({
-    queryKey: ['documents', { type: 'PKPB_REPORT', limit: 500 }] as const,
-    queryFn: () => api.documents.list({ type: 'PKPB_REPORT', limit: 500 }),
+    queryKey: ['documents', { limit: 500 }] as const,
+    queryFn: () => api.documents.list({ limit: 500 }),
     staleTime: 5 * 60_000,
   });
 }
@@ -125,6 +129,12 @@ export function useCorrelations(themeId?: string) {
     queryKey: ['insights', 'correlations', themeId] as const,
     queryFn: () => api.insights.correlations(themeId),
     staleTime: 10 * 60_000,
+  });
+}
+
+export function useGenerateInsightReport() {
+  return useMutation<InsightReport, Error, GenerateInsightReportPayload>({
+    mutationFn: (payload) => api.insightReports.generate(payload),
   });
 }
 
