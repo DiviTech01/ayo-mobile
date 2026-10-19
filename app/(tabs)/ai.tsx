@@ -145,6 +145,7 @@ export default function AskAIScreen() {
         role: 'assistant',
         content: res.answer,
         followUps: res.followUpQuestions,
+        source: res.source === 'rule-based' ? 'rule-based' : 'ai',
         createdAt: Date.now(),
       };
       setConversations((prev) => {
@@ -253,6 +254,13 @@ export default function AskAIScreen() {
 
         {/* Floating composer */}
         <View className="px-3 pb-3 pt-1">
+          {/* Same privacy note the web /ask page shows above its input. */}
+          <View className="mb-1.5 flex-row items-center justify-center gap-1.5 px-2">
+            <Ionicons name="shield-outline" size={12} color={colors.mutedForeground} />
+            <Text className="flex-shrink text-center text-[11px] text-muted-foreground">
+              {t('ai.privacyNote')}
+            </Text>
+          </View>
           <View className="flex-row items-end gap-2 rounded-[26px] border border-border bg-card px-2 py-1.5">
             <TextInput
               value={draft}
@@ -390,6 +398,17 @@ function Turn({
         ) : (
           <Markdown text={message.content} />
         )}
+
+        {/* Mirrors web: AI answers carry no footer; a rule-based answer says
+            it came from the data engine, not the AI. */}
+        {!message.error && message.source === 'rule-based' ? (
+          <View className="mt-2 flex-row items-center gap-1.5">
+            <Ionicons name="server-outline" size={11} color={colors.mutedForeground} />
+            <Text className="flex-shrink text-[10px] text-muted-foreground">
+              {t('ai.ruleBasedNote')}
+            </Text>
+          </View>
+        ) : null}
 
         {!message.error && message.followUps && message.followUps.length > 0 ? (
           <View className="mt-4 gap-1.5 border-t border-border/50 pt-3">

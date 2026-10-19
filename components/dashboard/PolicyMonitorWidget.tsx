@@ -31,7 +31,9 @@ function PolicyMonitorWidgetImpl() {
         ratifiedCount: 0,
         withPolicyCount: 0,
         avgScore: 0,
-        wpayCount: 0,
+        afcftaRatifiedCount: 0,
+        afcftaSignedCount: 0,
+        afcftaUnknownCount: 0,
         high: 0,
         medium: 0,
         low: 0,
@@ -43,12 +45,18 @@ function PolicyMonitorWidgetImpl() {
     const avgScore = Math.round(
       rows.reduce((sum, r) => sum + (r.complianceScore ?? 0), 0) / total,
     );
-    const wpayCount = rows.filter((r) => r.wpayCompliant).length;
+    const afcftaRatifiedCount = rows.filter((r) => r.afcftaProtocolStatus === 'RATIFIED').length;
+    const afcftaSignedCount = rows.filter((r) => r.afcftaProtocolStatus === 'SIGNED').length;
+    const afcftaUnknownCount = rows.filter((r) => (r.afcftaProtocolStatus ?? 'UNKNOWN') === 'UNKNOWN').length;
     const high = rows.filter((r) => tierFor(r.complianceScore) === 'high').length;
     const medium = rows.filter((r) => tierFor(r.complianceScore) === 'medium').length;
     const low = rows.filter((r) => tierFor(r.complianceScore) === 'low').length;
     const topPerformer = [...rows].sort((a, b) => b.complianceScore - a.complianceScore)[0];
-    return { total, ratifiedCount, withPolicyCount, avgScore, wpayCount, high, medium, low, topPerformer };
+    return {
+      total, ratifiedCount, withPolicyCount, avgScore,
+      afcftaRatifiedCount, afcftaSignedCount, afcftaUnknownCount,
+      high, medium, low, topPerformer,
+    };
   }, [q.data]);
 
   if (q.isLoading && !q.data) {
@@ -129,10 +137,17 @@ function PolicyMonitorWidgetImpl() {
         <StatTile
           icon="star"
           accent={PURPLE}
-          label={t('policy.wpayAligned')}
-          value={summary.wpayCount}
+          label={t('policy.afcftaLabel')}
+          value={summary.afcftaRatifiedCount}
           of={summary.total}
-          sub={t('policy.wpaySub')}
+          sub={
+            summary.afcftaUnknownCount === summary.total
+              ? t('policy.afcftaNotAssessed')
+              : t('policy.afcftaSubCounts', {
+                  signed: summary.afcftaSignedCount,
+                  unknown: summary.afcftaUnknownCount,
+                })
+          }
         />
       </View>
 

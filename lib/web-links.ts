@@ -1,10 +1,13 @@
 const BASE = 'https://africanyouthobservatory.org';
 
+// Every path here must be a route in the web app's src/App.tsx — an unknown
+// path falls through to the web 404 page. (`/ask-ai` was one, until 2026-10.)
+
 export const webLinks = {
   countries: `${BASE}/countries`,
   compare: `${BASE}/compare`,
   reports: `${BASE}/reports`,
-  askAi: `${BASE}/ask-ai`,
+  askAi: `${BASE}/ask`,
   insights: `${BASE}/insights`,
   themes: `${BASE}/themes`,
   explore: `${BASE}/explore`,

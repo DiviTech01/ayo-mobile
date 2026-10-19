@@ -7,6 +7,8 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   followUps?: string[];
+  /** Which engine answered; 'rule-based' replies are labelled in the UI. */
+  source?: 'ai' | 'rule-based';
   createdAt: number;
   error?: boolean;
 }

@@ -42,7 +42,8 @@ export function LiveDataTicker() {
         out.push({ label: 'Latest year', value: String(p.dataYearRange.latest),              color: '#4ade80' });
       }
       if (p.dataCompleteness) {
-        out.push({ label: 'Coverage', value: `${p.dataCompleteness.toFixed(0)}%`,            color: '#34d399' });
+        // The API sends a 0–1 fraction (0.52 = 52%).
+        out.push({ label: 'Coverage', value: `${Math.round(p.dataCompleteness * 100)}%`,     color: '#34d399' });
       }
     }
     const rankings = Array.isArray(rankingsQ.data) ? rankingsQ.data : [];
@@ -61,8 +62,9 @@ export function LiveDataTicker() {
       const sums: Record<string, number> = {};
       const counts: Record<string, number> = {};
       for (const r of rankings) {
-        const d = (r.dimensions || {}) as Record<string, number>;
+        const d = (r.dimensions || {}) as Record<string, number | null>;
         for (const [slug, score] of Object.entries(d)) {
+          if (typeof score !== 'number') continue; // insufficient data
           sums[slug] = (sums[slug] ?? 0) + score;
           counts[slug] = (counts[slug] ?? 0) + 1;
         }

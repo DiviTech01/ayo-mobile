@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { AfcftaProtocolStatus } from '@/lib/api';
 import { usePolicyRankings } from '@/lib/queries';
 import { useUserPreferences } from '@/lib/userPreferences';
 import { flagFromIso3 } from '@/lib/country-helpers';
@@ -40,7 +41,7 @@ type Row = {
   complianceScore: number;
   aycRatified: boolean;
   hasNationalPolicy: boolean;
-  wpayCompliant: boolean;
+  afcftaStatus: AfcftaProtocolStatus;
   policyName?: string | null;
   policyYear?: number | null;
 };
@@ -72,7 +73,7 @@ export default function PolicyMonitorScreen() {
         complianceScore: r.complianceScore,
         aycRatified: r.aycRatified,
         hasNationalPolicy: !!r.policyName,
-        wpayCompliant: r.wpayCompliant,
+        afcftaStatus: r.afcftaProtocolStatus ?? 'UNKNOWN',
         policyName: r.policyName,
         policyYear: r.yearAdopted ?? null,
       }))
@@ -312,10 +313,10 @@ function CountryPolicyCard({
                 </Text>
               </View>
             ) : null}
-            {row.wpayCompliant ? (
+            {row.afcftaStatus === 'RATIFIED' || row.afcftaStatus === 'SIGNED' ? (
               <View
                 style={{
-                  backgroundColor: 'rgba(59,130,246,0.15)',
+                  backgroundColor: row.afcftaStatus === 'RATIFIED' ? 'rgba(59,130,246,0.15)' : 'transparent',
                   borderColor: 'rgba(59,130,246,0.3)',
                   borderWidth: 1,
                 }}
@@ -325,7 +326,9 @@ function CountryPolicyCard({
                   className="text-[9px] font-semibold uppercase tracking-wider"
                   style={{ color: '#60A5FA' }}
                 >
-                  WPAY
+                  {row.afcftaStatus === 'RATIFIED'
+                    ? t('policy.afcftaRatifiedShort')
+                    : t('policy.afcftaSignedShort')}
                 </Text>
               </View>
             ) : null}

@@ -239,7 +239,7 @@ function DataChartImpl({
               Pick a country to chart this indicator
             </Text>
             <Text className="mt-1 text-center text-[11px] text-muted-foreground">
-              "{indicator}" has values for every African Union member state — open the filter sheet and choose one.
+              “{indicator}” has values for every African Union member state — open the filter sheet and choose one.
             </Text>
           </View>
         ) : isLoading ? (
@@ -250,7 +250,7 @@ function DataChartImpl({
         ) : timeseriesQ.error ? (
           <View className="items-center py-10">
             <Ionicons name="alert-circle-outline" size={26} color="#f87171" />
-            <Text className="mt-2 text-[12px] font-medium text-foreground">Couldn't load data</Text>
+            <Text className="mt-2 text-[12px] font-medium text-foreground">Couldn’t load data</Text>
             <Text className="mt-1 text-center text-[11px] text-muted-foreground">{String((timeseriesQ.error as any)?.message ?? 'Network error')}</Text>
           </View>
         ) : data.length === 0 ? (
@@ -258,7 +258,7 @@ function DataChartImpl({
             <Ionicons name="archive-outline" size={26} color="#fbbf24" />
             <Text className="mt-2 text-[12px] font-medium text-foreground">No values in {yearRange[0]}–{yearRange[1]}</Text>
             <Text className="mt-1 text-center text-[11px] text-muted-foreground">
-              {country} has no rows for "{indicator}" in this year range. Try widening the range or picking another country.
+              {country} has no rows for “{indicator}” in this year range. Try widening the range or picking another country.
             </Text>
           </View>
         ) : (

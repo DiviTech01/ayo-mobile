@@ -115,7 +115,10 @@ export default function CountriesScreen() {
                   </Text>
                   <View className="flex-row flex-wrap justify-between">
                     {list.map((c) => {
-                      const tier = tierColor(c.ayemiScore);
+                      // Unscored countries get a neutral pill, not "Critical".
+                      const tier = c.ayemiScore == null
+                        ? { bg: 'bg-muted', text: 'text-muted-foreground', label: t('youthIndex.insufficientData') }
+                        : tierColor(c.ayemiScore);
                       return (
                         <Pressable
                           key={c.id}
@@ -148,7 +151,7 @@ export default function CountriesScreen() {
                               </Text>
                             </View>
                             <Text className="text-sm font-bold tabular-nums text-foreground">
-                              {c.ayemiScore || '—'}
+                              {c.ayemiScore ?? '—'}
                             </Text>
                           </View>
                         </Pressable>

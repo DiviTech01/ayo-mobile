@@ -6,7 +6,7 @@ import { slugify } from './country-helpers';
 
 export interface CountryListItem extends Country {
   slug: string;
-  ayemiScore: number;
+  ayemiScore: number | null; // null = not scored (insufficient data)
   ayemiRank: number | null;
   ayemiTier: 'high' | 'medium' | 'low' | null;
 }
@@ -170,7 +170,8 @@ export function useCountryDirectory(year: number = 2025) {
       return {
         ...c,
         slug: slugify(c.name),
-        ayemiScore: r ? Math.round(r.overallScore) : 0,
+        // No row = not scored (below the coverage floor): null, never 0.
+        ayemiScore: r ? Math.round(r.overallScore) : null,
         ayemiRank: r?.rank ?? null,
         ayemiTier: r?.tier ?? null,
       };

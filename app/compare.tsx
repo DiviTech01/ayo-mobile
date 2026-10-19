@@ -67,33 +67,35 @@ export default function CompareScreen() {
         const c = directory.items.find((x) => x.id === id);
         const r = byId.get(id);
         if (!c) return null;
-        const value = r
+        // null = not scored / insufficient data: shown as "—", sorted last.
+        const raw = r
           ? (dimension === 'overallScore'
-              ? Number(r.overallScore || 0)
-              : Number((r.dimensions as Record<string, number> | undefined)?.[dimension] ?? 0))
-          : 0;
+              ? r.overallScore
+              : (r.dimensions as Record<string, number | null> | undefined)?.[dimension])
+          : null;
+        const value = typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
         return {
           id,
           name: c.name,
           flag: c.flagEmoji ?? '🏳️',
           region: c.region,
-          value: Number.isFinite(value) ? value : 0,
+          value,
           rank: r?.rank ?? null,
           tier: r?.tier ?? null,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
-      .sort((a, b) => b.value - a.value);
+      .sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
   }, [selectedIds, rankings, directory.items, dimension]);
 
-  const max = rows.length > 0 ? Math.max(...rows.map((r) => r.value), 1) : 1;
+  const max = rows.length > 0 ? Math.max(...rows.map((r) => r.value ?? 0), 1) : 1;
 
   const onShare = async () => {
     const dimKey = DIMENSIONS.find((d) => d.key === dimension)?.labelKey;
     const dimLabel = dimKey ? t(dimKey) : 'AYEMI';
     const lines = [
       t('compare.shareTitle', { dim: dimLabel }),
-      ...rows.map((r, i) => `${i + 1}. ${r.name}: ${r.value.toFixed(1)}`),
+      ...rows.map((r, i) => `${i + 1}. ${r.name}: ${r.value == null ? '—' : r.value.toFixed(1)}`),
       '',
       'African Youth Observatory · PACSDA',
     ];
@@ -177,9 +179,11 @@ export default function CompareScreen() {
           ) : (
             <View className="gap-4">
               {rows.map((r, i) => {
-                const widthPct = Math.max(2, (r.value / max) * 100);
+                const widthPct = r.value == null ? 0 : Math.max(2, (r.value / max) * 100);
                 const barColor =
-                  r.value >= 67
+                  r.value == null
+                    ? 'bg-muted'
+                    : r.value >= 67
                     ? 'bg-pan-green-500'
                     : r.value >= 34
                     ? 'bg-pan-gold-500'
@@ -193,7 +197,7 @@ export default function CompareScreen() {
                         <Text className="text-sm font-medium text-foreground">{r.name}</Text>
                       </View>
                       <Text className="text-sm font-bold tabular-nums text-foreground">
-                        {r.value.toFixed(1)}
+                        {r.value == null ? '—' : r.value.toFixed(1)}
                       </Text>
                     </View>
                     <View className="h-2 overflow-hidden rounded-full bg-muted">

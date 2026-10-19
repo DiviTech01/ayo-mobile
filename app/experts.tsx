@@ -7,24 +7,28 @@ import { useExperts } from '@/lib/queries';
 import type { Expert } from '@/lib/api';
 import { useThemeColors } from '@/lib/theme-colors';
 import { PageHeader } from '@/components/PageHeader';
+import { useTranslation } from '@/lib/i18n';
 
 export default function ExpertsScreen() {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const q = useExperts();
+  const all = useMemo(() => (Array.isArray(q.data) ? q.data : []), [q.data]);
 
   const filtered = useMemo(() => {
-    const list = Array.isArray(q.data) ? q.data : [];
+    const list = all;
     const qq = search.trim().toLowerCase();
     if (!qq) return list;
     return list.filter(
       (e) =>
         e.name.toLowerCase().includes(qq) ||
-        e.organization.toLowerCase().includes(qq) ||
+        (e.organization ?? '').toLowerCase().includes(qq) ||
+        e.title.toLowerCase().includes(qq) ||
         (e.country?.name?.toLowerCase().includes(qq) ?? false) ||
         (e.specializations ?? []).some((s) => s.toLowerCase().includes(qq)),
     );
-  }, [q.data, search]);
+  }, [all, search]);
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
@@ -32,19 +36,25 @@ export default function ExpertsScreen() {
 
       <ScrollView contentContainerClassName="pb-12">
         <PageHeader
-          title="Expert Directory"
-          description="Researchers, policy advocates, and youth-development practitioners across the continent."
+          title={t('experts.title')}
+          description={t('experts.subtitle')}
           icon="people"
           showBack
         />
 
         <View className="px-5 pt-4">
+        {/* Mirrors the web note: these are illustrative profiles */}
+        <View className="mb-3 flex-row items-center gap-1.5">
+          <Ionicons name="information-circle-outline" size={13} color={colors.mutedForeground} />
+          <Text className="flex-1 text-[11px] text-muted-foreground">{t('experts.sampleNote')}</Text>
+        </View>
+
         <View className="flex-row items-center rounded-xl border border-border bg-card px-3 py-2.5">
           <Ionicons name="search" size={18} color={colors.mutedForeground} />
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search by name, org, or specialization"
+            placeholder={t('experts.searchPlaceholder')}
             placeholderTextColor={colors.mutedForeground}
             className="ml-2 flex-1 text-base text-foreground"
             autoCorrect={false}
@@ -62,7 +72,7 @@ export default function ExpertsScreen() {
         ) : q.error ? (
           <ErrorState onRetry={() => q.refetch()} />
         ) : filtered.length === 0 ? (
-          <EmptyState search={search} />
+          <EmptyState hasExperts={all.length > 0} />
         ) : (
           <View className="mt-4 gap-2.5">
             {filtered.map((e) => (
@@ -121,7 +131,8 @@ function Avatar({ uri, name }: { uri?: string | null; name: string }) {
   if (uri) {
     return <Image source={{ uri }} className="h-12 w-12 rounded-full bg-muted" />;
   }
-  const initial = name.charAt(0).toUpperCase();
+  // Skip the honorific so "Dr. Aminata Ouédraogo" shows "A", as on the web.
+  const initial = name.replace(/^(Dr|Prof|Mr|Ms|Mrs)\.?\s+/i, '').charAt(0).toUpperCase();
   return (
     <View className="h-12 w-12 items-center justify-center rounded-full bg-accent/15">
       <Text className="text-base font-bold text-accent">{initial}</Text>
@@ -150,24 +161,30 @@ function SkeletonList() {
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   return (
     <View className="mt-8 items-center rounded-2xl border border-border bg-card p-6">
       <Ionicons name="cloud-offline-outline" size={32} color={colors.mutedForeground} />
-      <Text className="mt-2 text-sm text-foreground">Couldn&rsquo;t load experts</Text>
+      <Text className="mt-2 text-sm text-foreground">{t('experts.errorTitle')}</Text>
+      <Text className="mt-1 text-center text-xs text-muted-foreground">{t('experts.errorBody')}</Text>
       <Pressable onPress={onRetry} className="mt-3 rounded-lg bg-primary px-4 py-2">
-        <Text className="text-sm font-medium text-primary-foreground">Try again</Text>
+        <Text className="text-sm font-medium text-primary-foreground">{t('common.retry')}</Text>
       </Pressable>
     </View>
   );
 }
 
-function EmptyState({ search }: { search: string }) {
+function EmptyState({ hasExperts }: { hasExperts: boolean }) {
   const colors = useThemeColors();
+  const { t } = useTranslation();
   return (
     <View className="mt-8 items-center py-10">
       <Ionicons name="people-outline" size={32} color={colors.mutedForeground} />
-      <Text className="mt-2 text-sm text-muted-foreground">
-        {search ? `No experts match "${search}"` : 'No experts in the directory yet.'}
+      <Text className="mt-2 text-sm text-foreground">
+        {t(hasExperts ? 'experts.noMatchTitle' : 'experts.emptyTitle')}
+      </Text>
+      <Text className="mt-1 text-center text-xs text-muted-foreground">
+        {t(hasExperts ? 'experts.noMatchBody' : 'experts.emptyBody')}
       </Text>
     </View>
   );

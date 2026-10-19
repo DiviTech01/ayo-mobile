@@ -3,12 +3,22 @@ import { supabase } from './supabase';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
+// Same budgets as the web client (src/lib/api-client.ts): the default leaves
+// room for a Render cold start, AI generation and file renders get minutes.
+const DEFAULT_TIMEOUT_MS = 45_000;
+const LONG_TIMEOUT_MS = 180_000;
+const LONG_RUNNING = [/^\/insight-reports\/generate/, /\/download/, /^\/nlq\//, /^\/ai-chat\//, /^\/export\//];
+
 export const http = axios.create({
   baseURL: API_URL,
-  timeout: 20000,
+  timeout: DEFAULT_TIMEOUT_MS,
 });
 
 http.interceptors.request.use(async (config) => {
+  const path = config.url ?? '';
+  if (LONG_RUNNING.some((re) => re.test(path))) {
+    config.timeout = Math.max(config.timeout ?? 0, LONG_TIMEOUT_MS);
+  }
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -82,7 +92,8 @@ export type ThemeSlug =
   | 'peace-security'
   | 'access-to-justice';
 
-export type DimensionScores = Record<ThemeSlug, number>;
+// null = "insufficient data" for that dimension (the API never imputes a score).
+export type DimensionScores = Record<ThemeSlug, number | null>;
 
 export interface YouthIndexScore {
   rank: number;
@@ -97,11 +108,11 @@ export interface YouthIndexScore {
   dimensions: DimensionScores;
   // Legacy flat fields kept for back-compat with screens not yet migrated to .dimensions.
   // Mapping: civicScore ← demography & participation; innovationScore ← entrepreneurship.
-  educationScore?: number;
-  employmentScore?: number;
-  healthScore?: number;
-  civicScore?: number;
-  innovationScore?: number;
+  educationScore?: number | null;
+  employmentScore?: number | null;
+  healthScore?: number | null;
+  civicScore?: number | null;
+  innovationScore?: number | null;
   previousRank?: number;
   rankChange?: number;
   percentile?: number;
@@ -110,21 +121,30 @@ export interface YouthIndexScore {
 
 export interface YouthIndexRankingsResponse {
   data: YouthIndexScore[];
-  meta: { year: number; totalCountries: number; averageScore: number; methodology: string };
+  meta: {
+    year: number;
+    totalCountries: number;
+    averageScore: number | null;
+    methodology: string;
+    /** Countries below the coverage floor for the year: listed, not ranked. */
+    insufficientData?: { countryId: string; countryName: string; region: string; flagEmoji?: string | null }[];
+  };
 }
 
 // Normalizes whatever shape the API returns into the 7-theme YouthIndexScore.
 // Populates both the canonical `dimensions` map and the legacy flat fields so
 // screens written for the old 5-dim shape keep working during migration.
 export function normalizeYouthIndexScore(r: any): YouthIndexScore {
-  const d: Record<string, number> = (r && r.dimensions && typeof r.dimensions === 'object') ? r.dimensions : {};
-  const demography = d['youth-demography-participation'] ?? 50;
-  const education = d['education'] ?? r?.educationScore ?? 50;
-  const employment = d['employment'] ?? r?.employmentScore ?? 50;
-  const health = d['health'] ?? r?.healthScore ?? 50;
-  const entrepreneurship = d['entrepreneurship'] ?? 50;
-  const peaceSecurity = d['peace-security'] ?? 50;
-  const accessToJustice = d['access-to-justice'] ?? 50;
+  // Missing dimensions stay null ("insufficient data"); they used to default
+  // to 50 here, re-imputing the value the API stopped sending. Mirrors web.
+  const d: Record<string, number | null> = (r && r.dimensions && typeof r.dimensions === 'object') ? r.dimensions : {};
+  const demography = d['youth-demography-participation'] ?? null;
+  const education = d['education'] ?? r?.educationScore ?? null;
+  const employment = d['employment'] ?? r?.employmentScore ?? null;
+  const health = d['health'] ?? r?.healthScore ?? null;
+  const entrepreneurship = d['entrepreneurship'] ?? null;
+  const peaceSecurity = d['peace-security'] ?? null;
+  const accessToJustice = d['access-to-justice'] ?? null;
   return {
     ...r,
     dimensions: {
@@ -144,6 +164,8 @@ export function normalizeYouthIndexScore(r: any): YouthIndexScore {
   };
 }
 
+export type AfcftaProtocolStatus = 'UNKNOWN' | 'NOT_SIGNED' | 'SIGNED' | 'RATIFIED';
+
 export interface PolicyMonitorEntry {
   rank: number;
   countryId: string;
@@ -156,7 +178,11 @@ export interface PolicyMonitorEntry {
   policyName?: string | null;
   aycRatified: boolean;
   aycRatifiedYear?: number | null;
-  wpayCompliant: boolean;
+  // AfCFTA Protocol on Women and Youth in Trade. UNKNOWN = not yet assessed.
+  afcftaProtocolStatus?: AfcftaProtocolStatus;
+  afcftaProtocolNote?: string | null;
+  afcftaProtocolSourceUrl?: string | null;
+  afcftaProtocolAssessed?: boolean;
   yearAdopted?: number | null;
   yearRevised?: number | null;
   status?: 'active' | 'partial' | 'weak' | 'new' | string | null;
@@ -166,7 +192,7 @@ export interface PolicyMonitorEntry {
     aycRatification?: number;
     nationalYouthPolicy?: number;
     policyCurrency?: number;
-    wpayCompliance?: number;
+    afcftaProtocol?: number | null; // null = not yet assessed (excluded from score)
     policyStatus?: number;
     youthIndexPerformance?: number;
     dataAvailability?: number;
