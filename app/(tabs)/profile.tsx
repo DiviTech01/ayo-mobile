@@ -1,11 +1,24 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
 import { LEGAL_LINKS } from '@/lib/legal';
+import { http } from '@/lib/api';
 import {
   authenticateWithBiometrics,
   biometricAvailable,
@@ -24,6 +37,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { prefs: notifPrefs } = useNotificationPrefs();
   const { t, languageInfo } = useTranslation();
+  const colors = useThemeColors();
   const [email, setEmail] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [organization, setOrganization] = useState<string | null>(null);
@@ -99,6 +113,42 @@ export default function SettingsScreen() {
     openBrowserAsync(url, {
       presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
     }).catch(() => undefined);
+  };
+
+  // --- Account deletion (mirrors web Settings) --------------------------
+  // Google Play and the App Store require an in-app deletion path for any app
+  // offering account creation. Confirmation is by typing DELETE, as on web.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const deleteConfirmed = deleteText.trim().toUpperCase() === 'DELETE';
+
+  const closeDelete = () => {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setDeleteText('');
+  };
+
+  const onDeleteAccount = async () => {
+    if (!deleteConfirmed || deleting) return;
+    setDeleting(true);
+    try {
+      await http.delete('/auth/account');
+      setDeleteOpen(false);
+      setDeleteText('');
+      // The credential is gone, so the local session (and PIN) is meaningless.
+      await signOut();
+      Alert.alert(t('profile.deleteSuccessTitle'), t('profile.deleteSuccessBody'));
+      router.replace('/(auth)/sign-in');
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      Alert.alert(
+        t('profile.deleteErrorTitle'),
+        e.response?.data?.message ?? e.message ?? t('common.error'),
+      );
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const onSignOut = async () => {
@@ -259,9 +309,80 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
+        <View className="mt-8 rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
+          <View className="flex-row items-center gap-2">
+            <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+            <Text className="text-base font-semibold text-foreground">
+              {t('profile.deleteAccount')}
+            </Text>
+          </View>
+          <Text className="mt-1.5 text-xs leading-5 text-muted-foreground">
+            {t('profile.deleteAccountSub')}
+          </Text>
+          <Pressable
+            onPress={() => setDeleteOpen(true)}
+            className="mt-4 self-start rounded-lg bg-destructive px-3.5 py-2 active:opacity-80"
+          >
+            <Text className="text-sm font-semibold text-destructive-foreground">
+              {t('profile.deleteAccountButton')}
+            </Text>
+          </Pressable>
+        </View>
+
         <Text className="mt-6 text-center text-xs text-muted-foreground">AfYO v1.0.0</Text>
         </View>
       </ScrollView>
+
+      <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={closeDelete}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 items-center justify-center bg-black/60 px-6"
+        >
+          <View className="w-full rounded-2xl border border-border bg-card p-5">
+            <Text className="font-display text-lg font-semibold text-foreground">
+              {t('profile.deleteConfirmTitle')}
+            </Text>
+            <Text className="mt-2 text-sm leading-5 text-muted-foreground">
+              {t('profile.deleteConfirmBody', { email: email ?? '—' })}
+            </Text>
+            <Text className="mt-2 text-sm leading-5 text-muted-foreground">
+              {t('profile.deleteConfirmNote')}
+            </Text>
+            <Text className="mt-4 text-xs text-muted-foreground">{t('profile.deleteTypeLabel')}</Text>
+            <TextInput
+              value={deleteText}
+              onChangeText={setDeleteText}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!deleting}
+              placeholder="DELETE"
+              placeholderTextColor={colors.mutedForeground}
+              className="mt-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-base text-foreground"
+            />
+            <View className="mt-5 flex-row justify-end gap-2">
+              <Pressable
+                onPress={closeDelete}
+                disabled={deleting}
+                className="rounded-lg border border-border px-3.5 py-2 active:bg-muted"
+              >
+                <Text className="text-sm font-semibold text-foreground">{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                onPress={onDeleteAccount}
+                disabled={!deleteConfirmed || deleting}
+                className={`flex-row items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 ${
+                  !deleteConfirmed || deleting ? 'opacity-50' : 'active:opacity-80'
+                }`}
+              >
+                {deleting ? <ActivityIndicator size="small" color="#fff" /> : null}
+                <Text className="text-sm font-semibold text-destructive-foreground">
+                  {t('profile.deleteConfirmButton')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
