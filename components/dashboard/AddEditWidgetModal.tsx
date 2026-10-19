@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -10,15 +10,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useCountries, useIndicators } from '@/lib/queries';
 import { tapLight, tapSelection } from '@/lib/haptics';
 import { useTranslation } from '@/lib/i18n';
-import {
-  COUNTRIES,
-  INDICATORS,
-  type ChartType,
-  type Widget,
-  type WidgetDraft,
-} from '@/lib/widgets';
+import { type ChartType, type Widget, type WidgetDraft } from '@/lib/widgets';
 
 const CHART_TYPES: { type: ChartType; labelKey: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
   { type: 'bar', labelKey: 'dashboard.chart.bar', icon: 'bar-chart' },
@@ -49,6 +44,20 @@ export function AddEditWidgetModal({
   const [countries, setCountries] = useState<string[]>([]);
   const [title, setTitle] = useState<string>('');
 
+  // Live indicators & countries — so picks resolve to real data, not labels.
+  const indicatorsQ = useIndicators();
+  const countriesQ = useCountries();
+  const indicatorList = useMemo(
+    () => [...(indicatorsQ.data ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+    [indicatorsQ.data],
+  );
+  const countryNames = useMemo(
+    () => (countriesQ.data ?? []).map((c) => c.name).sort((a, b) => a.localeCompare(b)),
+    [countriesQ.data],
+  );
+  // radar & stat read youth-index scores, so they don't need an indicator pick.
+  const needsIndicator = chartType === 'bar' || chartType === 'line' || chartType === 'area';
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
@@ -73,12 +82,18 @@ export function AddEditWidgetModal({
     });
   };
 
-  const canSubmit = title.trim().length > 0 && !!indicator;
+  const canSubmit =
+    title.trim().length > 0 && (!needsIndicator || !!indicator) && countries.length > 0;
 
   const submit = () => {
     if (!canSubmit) return;
     tapLight();
-    onSubmit({ title, chartType, indicator, countries });
+    const finalIndicator = needsIndicator
+      ? indicator
+      : chartType === 'radar'
+        ? 'Youth Index dimensions'
+        : 'Youth Index score';
+    onSubmit({ title, chartType, indicator: finalIndicator, countries });
     onClose();
   };
 
@@ -140,74 +155,82 @@ export function AddEditWidgetModal({
               })}
             </View>
 
-            <Label>{t('dashboard.indicator')}</Label>
-            <View className="mb-5 gap-2">
-              {INDICATORS.map((ind) => {
-                const active = ind === indicator;
-                return (
-                  <Pressable
-                    key={ind}
-                    onPress={() => {
-                      tapSelection();
-                      setIndicator(ind);
-                    }}
-                    className={`flex-row items-center justify-between rounded-xl border px-3.5 py-3 ${
-                      active ? 'border-primary bg-primary/10' : 'border-border bg-muted'
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm ${
-                        active ? 'font-semibold text-primary' : 'text-foreground'
-                      }`}
-                    >
-                      {ind}
-                    </Text>
-                    {active ? (
-                      <Ionicons name="checkmark" size={16} color={colors.primary} />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {chartType !== 'stat' ? (
+            {needsIndicator ? (
               <>
-                <Label>
-                  {t('dashboard.countries')}{' '}
-                  <Text className="font-normal text-muted-foreground">
-                    {t('dashboard.upTo', { n: MAX_COUNTRIES })}
-                  </Text>
-                </Label>
-                <View className="mb-5 flex-row flex-wrap gap-2">
-                  {COUNTRIES.map((c) => {
-                    const active = countries.includes(c);
-                    const disabled = !active && countries.length >= MAX_COUNTRIES;
-                    return (
-                      <Pressable
-                        key={c}
-                        disabled={disabled}
-                        onPress={() => toggleCountry(c)}
-                        className={`rounded-full border px-3 py-1.5 ${
-                          active
-                            ? 'border-primary bg-primary/15'
-                            : disabled
-                            ? 'border-border bg-muted opacity-50'
-                            : 'border-border bg-muted'
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs ${
-                            active ? 'font-semibold text-primary' : 'text-foreground'
+                <Label>{t('dashboard.indicator')}</Label>
+                <View className="mb-5 gap-2">
+                  {indicatorList.length === 0 ? (
+                    <Text className="text-xs text-muted-foreground">{t('common.loading')}</Text>
+                  ) : (
+                    indicatorList.map((ind) => {
+                      const active = ind.slug === indicator || ind.name === indicator;
+                      return (
+                        <Pressable
+                          key={ind.id}
+                          onPress={() => {
+                            tapSelection();
+                            setIndicator(ind.slug);
+                          }}
+                          className={`flex-row items-center justify-between rounded-xl border px-3.5 py-3 ${
+                            active ? 'border-primary bg-primary/10' : 'border-border bg-muted'
                           }`}
                         >
-                          {c}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                          <Text
+                            className={`text-sm ${
+                              active ? 'font-semibold text-primary' : 'text-foreground'
+                            }`}
+                          >
+                            {ind.name}
+                          </Text>
+                          {active ? (
+                            <Ionicons name="checkmark" size={16} color={colors.primary} />
+                          ) : null}
+                        </Pressable>
+                      );
+                    })
+                  )}
                 </View>
               </>
             ) : null}
+
+            <Label>
+              {t('dashboard.countries')}{' '}
+              <Text className="font-normal text-muted-foreground">
+                {t('dashboard.upTo', { n: MAX_COUNTRIES })}
+              </Text>
+            </Label>
+            <View className="mb-5 flex-row flex-wrap gap-2">
+              {countryNames.length === 0 ? (
+                <Text className="text-xs text-muted-foreground">{t('common.loading')}</Text>
+              ) : (
+                countryNames.map((c) => {
+                  const active = countries.includes(c);
+                  const disabled = !active && countries.length >= MAX_COUNTRIES;
+                  return (
+                    <Pressable
+                      key={c}
+                      disabled={disabled}
+                      onPress={() => toggleCountry(c)}
+                      className={`rounded-full border px-3 py-1.5 ${
+                        active
+                          ? 'border-primary bg-primary/15'
+                          : disabled
+                          ? 'border-border bg-muted opacity-50'
+                          : 'border-border bg-muted'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs ${
+                          active ? 'font-semibold text-primary' : 'text-foreground'
+                        }`}
+                      >
+                        {c}
+                      </Text>
+                    </Pressable>
+                  );
+                })
+              )}
+            </View>
 
             <Label>{t('dashboard.widgetTitle')}</Label>
             <TextInput

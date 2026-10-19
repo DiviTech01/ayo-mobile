@@ -1,8 +1,9 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { WidgetChart } from './WidgetChart';
 import { useThemeColors } from '@/lib/theme-colors';
+import { useIndicators } from '@/lib/queries';
 import { tapLight } from '@/lib/haptics';
 import { useTranslation } from '@/lib/i18n';
 import type { ChartType, Widget } from '@/lib/widgets';
@@ -27,6 +28,14 @@ function WidgetCardImpl({
   const colors = useThemeColors();
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const indicatorsQ = useIndicators();
+  // Show the human indicator name even when the widget stores a slug.
+  const indicatorLabel = useMemo(() => {
+    const found = (indicatorsQ.data ?? []).find(
+      (i) => i.slug === widget.indicator || i.name === widget.indicator,
+    );
+    return found?.name ?? widget.indicator;
+  }, [indicatorsQ.data, widget.indicator]);
 
   return (
     <View
@@ -48,7 +57,7 @@ function WidgetCardImpl({
           </Text>
           <View className="mt-0.5 flex-row items-center gap-1.5">
             <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
-              {widget.indicator}
+              {indicatorLabel}
             </Text>
             <Text className="text-[10px] text-muted-foreground">·</Text>
             <Text className="text-[11px] text-muted-foreground">

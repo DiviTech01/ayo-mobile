@@ -375,10 +375,13 @@ export const api = {
       getList<{ region: string; value: number }>('/data/regional-averages', { indicatorId }),
     map: (indicatorId: string, year?: number) =>
       getList<{ countryId: string; value: number }>('/data/map', { indicatorId, year }),
-    timeseries: (params: { indicatorId: string; countryId?: string; from?: number; to?: number }) =>
+    // The API expects `yearStart`/`yearEnd` (it 400s on `from`/`to`). Map them
+    // here so callers can pass an optional `from`/`to` window; omit both to get
+    // the full available history.
+    timeseries: ({ indicatorId, countryId, from, to }: { indicatorId: string; countryId?: string; from?: number; to?: number }) =>
       getList<{ year: number; value: number; countryId: string; countryName?: string }>(
         '/data/timeseries',
-        params,
+        { indicatorId, countryId, yearStart: from, yearEnd: to },
       ),
     comparison: (params: { indicatorId: string; countryIds?: string[]; year?: number }) =>
       getList<{ countryId: string; countryName?: string; value: number; year: number }>(

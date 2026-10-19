@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// v2 bump: adds Cross-Dimensional Profile widget at position #1 and reorders
-// the existing defaults to mirror the web dashboard. Existing users on v1
-// get migrated to the new defaults on next load.
-const STORAGE_KEY = 'afyo.user_widgets.v2';
-const LEGACY_STORAGE_KEYS = ['afyo.user_widgets.v1'];
+// v4 bump: widgets are now pure configuration — their chart data is fetched
+// live from the API at render time (see WidgetChart), never generated. The old
+// `data` field and the random generators are gone. Existing users on v1–v3 are
+// migrated to the new defaults on next load.
+const STORAGE_KEY = 'afyo.user_widgets.v4';
+const LEGACY_STORAGE_KEYS = ['afyo.user_widgets.v1', 'afyo.user_widgets.v2', 'afyo.user_widgets.v3'];
 
 export type ChartType = 'bar' | 'line' | 'area' | 'radar' | 'stat';
 
@@ -13,109 +14,57 @@ export type Widget = {
   id: string;
   title: string;
   chartType: ChartType;
+  // For bar/line/area this is an indicator slug (or name) resolved against the
+  // live /indicators list. For radar/stat it's a display label only — those
+  // charts read youth-index dimension scores, not a single indicator.
   indicator: string;
   countries: string[];
-  data: SeriesPoint[];
 };
 
+// Chart-ready row shape consumed by WidgetChart. Cartesian rows are keyed by
+// `year` + one entry per country; radar rows are keyed by `dimension`.
 export type SeriesPoint = Record<string, string | number>;
 
-export const COUNTRIES = [
-  'Nigeria',
-  'Kenya',
-  'South Africa',
-  'Ghana',
-  'Ethiopia',
-  'Tanzania',
-  'Rwanda',
-  'Senegal',
-  'Egypt',
-  'Morocco',
-];
+// Default widget set mirrors the web dashboard exactly per the
+// "mobile-web parity mandate" (no country repeated across widgets), and every
+// widget points at an indicator with real, broad coverage in the database:
+//   1. Cross-Dimensional Profile (radar) — Nigeria/Kenya/South Africa/Egypt/Ghana
+//   2. Entrepreneurship & Digital Access (line) — Rwanda/Senegal/Morocco/Botswana
+//   3. Access to Justice (bar) — Tunisia/Uganda/Côte d'Ivoire
+//   4. Youth Health Access (area) — Ethiopia/Algeria/Cameroon/Zambia/Mali
+const RADAR_COUNTRIES = ['Nigeria', 'Kenya', 'South Africa', 'Egypt', 'Ghana'];
+const ENTREPRENEURSHIP_COUNTRIES = ['Rwanda', 'Senegal', 'Morocco', 'Botswana'];
+const JUSTICE_COUNTRIES = ['Tunisia', 'Uganda', "Cote d'Ivoire"];
+const HEALTH_COUNTRIES = ['Ethiopia', 'Algeria', 'Cameroon', 'Zambia', 'Mali'];
 
-export const INDICATORS = [
-  'Youth Literacy Rate',
-  'Youth Unemployment Rate',
-  'Health Access Index',
-  'Digital Inclusion Score',
-  'Secondary Enrollment Rate',
-  'NEET Rate',
-  'Skilled Employment Share',
-  'Civic Participation Index',
-];
-
-function rng(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
-}
-
-export function generateTimeSeries(countries: string[], seed = Date.now()): SeriesPoint[] {
-  const r = rng(seed);
-  const years = [2019, 2020, 2021, 2022, 2023];
-  return years.map((year) => {
-    const entry: SeriesPoint = { year: year.toString() };
-    countries.forEach((c) => {
-      entry[c] = Math.round(40 + r() * 50);
-    });
-    return entry;
-  });
-}
-
-export function generateRadar(countries: string[], seed = Date.now()): SeriesPoint[] {
-  const r = rng(seed);
-  const dimensions = ['Education', 'Health', 'Employment', 'Digital', 'Civic'];
-  return dimensions.map((dim) => {
-    const entry: SeriesPoint = { dimension: dim };
-    countries.forEach((c) => {
-      entry[c] = Math.round(30 + r() * 70);
-    });
-    return entry;
-  });
-}
-
-export function generateStat(seed = Date.now()): SeriesPoint[] {
-  const r = rng(seed);
-  return [{ value: Math.round(40 + r() * 55), change: Number((r() * 10 - 3).toFixed(1)) }];
-}
-
-export function generateData(chartType: ChartType, countries: string[]): SeriesPoint[] {
-  if (chartType === 'stat') return generateStat();
-  if (chartType === 'radar') return generateRadar(countries);
-  return generateTimeSeries(countries);
-}
-
-// Default widget order mirrors the web dashboard exactly per the
-// "mobile-web parity mandate":
-//   1. Cross-Dimensional Profile (radar)
-//   2. Employment Trends (line)
-//   3. Youth Literacy Rates (bar)
 const DEFAULT_WIDGETS: Widget[] = [
   {
     id: 'w1',
     title: 'Cross-Dimensional Profile',
     chartType: 'radar',
-    indicator: 'Multi-dimension comparison',
-    countries: ['Nigeria', 'Kenya', 'South Africa', 'Egypt', 'Ghana'],
-    data: generateRadar(['Nigeria', 'Kenya', 'South Africa', 'Egypt', 'Ghana']),
+    indicator: 'Youth Index dimensions',
+    countries: RADAR_COUNTRIES,
   },
   {
     id: 'w2',
-    title: 'Employment Trends',
+    title: 'Entrepreneurship & Digital Access',
     chartType: 'line',
-    indicator: 'Youth Unemployment Rate',
-    countries: ['Ghana', 'Rwanda', 'Senegal', 'Kenya'],
-    data: generateTimeSeries(['Ghana', 'Rwanda', 'Senegal', 'Kenya'], 22),
+    indicator: 'internet-access-households',
+    countries: ENTREPRENEURSHIP_COUNTRIES,
   },
   {
     id: 'w3',
-    title: 'Youth Literacy Rates',
+    title: 'Access to Justice',
     chartType: 'bar',
-    indicator: 'Youth Literacy Rate',
-    countries: ['Nigeria', 'Kenya', 'South Africa'],
-    data: generateTimeSeries(['Nigeria', 'Kenya', 'South Africa'], 11),
+    indicator: 'juvenile-detentions',
+    countries: JUSTICE_COUNTRIES,
+  },
+  {
+    id: 'w4',
+    title: 'Youth Health Access',
+    chartType: 'area',
+    indicator: 'births-by-skilled-staff',
+    countries: HEALTH_COUNTRIES,
   },
 ];
 
@@ -123,14 +72,17 @@ async function read(): Promise<Widget[]> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      // Sweep legacy storage so v1 users get the new default order on next load.
+      // Sweep legacy storage so older users get the new default order on next load.
       for (const k of LEGACY_STORAGE_KEYS) {
         try { await AsyncStorage.removeItem(k); } catch {}
       }
       return DEFAULT_WIDGETS;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_WIDGETS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_WIDGETS;
+    // Strip any legacy precomputed `data` field so persisted widgets become
+    // pure config — the chart now always fetches live values.
+    return parsed.map(({ data: _legacy, ...w }: Widget & { data?: unknown }) => w);
   } catch {
     return DEFAULT_WIDGETS;
   }
@@ -165,14 +117,12 @@ export function useWidgets() {
 
   const addWidget = useCallback(
     (draft: WidgetDraft) => {
-      const countries = draft.countries.length > 0 ? draft.countries : ['Nigeria'];
       const widget: Widget = {
         id: `w-${Date.now()}`,
         title: draft.title.trim(),
         chartType: draft.chartType,
         indicator: draft.indicator,
-        countries,
-        data: generateData(draft.chartType, countries),
+        countries: draft.countries,
       };
       persist([...widgets, widget]);
       return widget;
@@ -182,22 +132,18 @@ export function useWidgets() {
 
   const updateWidget = useCallback(
     (id: string, draft: WidgetDraft) => {
-      const countries = draft.countries.length > 0 ? draft.countries : ['Nigeria'];
       persist(
-        widgets.map((w) => {
-          if (w.id !== id) return w;
-          const shapeChanged =
-            w.chartType !== draft.chartType ||
-            JSON.stringify(w.countries) !== JSON.stringify(countries);
-          return {
-            ...w,
-            title: draft.title.trim(),
-            chartType: draft.chartType,
-            indicator: draft.indicator,
-            countries,
-            data: shapeChanged ? generateData(draft.chartType, countries) : w.data,
-          };
-        }),
+        widgets.map((w) =>
+          w.id === id
+            ? {
+                ...w,
+                title: draft.title.trim(),
+                chartType: draft.chartType,
+                indicator: draft.indicator,
+                countries: draft.countries,
+              }
+            : w,
+        ),
       );
     },
     [widgets, persist],
