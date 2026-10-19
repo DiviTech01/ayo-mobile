@@ -71,31 +71,49 @@ export function mapCountryToLanguage(code?: string | null): Language {
   return COUNTRY_LANGUAGE[code.trim().toUpperCase()] ?? 'en';
 }
 
+const SUPPORTED: readonly Language[] = ['en', 'fr', 'ar', 'pt', 'sw'];
+
 /**
- * Best-effort IP geolocation of the visitor's country.
- * Non-blocking, short timeout, never throws — returns null on any failure.
+ * The device's own locale, e.g. "fr-SN". Never throws.
+ *
+ * This replaced a call that sent the device's IP to https://ipwho.is on first
+ * launch. That was a transfer of personal data to a processor named in no
+ * privacy policy, before the user had agreed to anything — a Play Data Safety
+ * disclosure problem as well as a GDPR one — and it was guessing at something
+ * the operating system already knows. Do not reintroduce a network call here.
  */
-export async function detectCountryCode(timeoutMs = 3500): Promise<string | null> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+function deviceLocale(): string | null {
   try {
-    const res = await fetch('https://ipwho.is/?fields=country_code', {
-      signal: ctrl.signal,
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { country_code?: string };
-    const cc = json?.country_code;
-    return cc && /^[A-Za-z]{2}$/.test(cc) ? cc.toUpperCase() : null;
+    return Intl.DateTimeFormat().resolvedOptions().locale || null;
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
-/** Detect the visitor's country and resolve it to a default language. */
+/**
+ * The region subtag of the device locale, if it carries one ("fr-SN" -> "SN").
+ * Kept exported because it is the honest replacement for the old IP lookup at
+ * every call site that wanted a country.
+ */
+export function detectCountryCode(): string | null {
+  const tag = deviceLocale();
+  const region = tag?.split(/[-_]/).find((part) => /^[A-Za-z]{2}$/.test(part) && part === part.toUpperCase());
+  return region ? region.toUpperCase() : null;
+}
+
+/**
+ * Resolve the device's default language.
+ *
+ * The device's chosen language wins when we support it — someone who set their
+ * phone to French means it, wherever they are. Only when the language is one we
+ * do not carry does the region decide, so a Senegalese phone set to Wolof still
+ * opens in French rather than English.
+ */
 export async function detectDefaultLanguage(): Promise<Language | null> {
-  const cc = await detectCountryCode();
-  if (!cc) return null;
-  return mapCountryToLanguage(cc);
+  const tag = deviceLocale();
+  const primary = tag?.split(/[-_]/)[0]?.toLowerCase() as Language | undefined;
+  if (primary && SUPPORTED.includes(primary)) return primary;
+
+  const cc = detectCountryCode();
+  return cc ? mapCountryToLanguage(cc) : null;
 }
