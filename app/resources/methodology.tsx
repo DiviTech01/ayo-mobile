@@ -152,6 +152,7 @@ function buildSections(t: TFunc): Section[] {
           </Text>
           <Bullets
             items={[
+              t('method.ayi.c0'),
               t('method.ayi.c1'),
               t('method.ayi.c2'),
               t('method.ayi.c3'),
