@@ -122,18 +122,18 @@ function buildSections(t: TFunc): Section[] {
               <Text className="flex-1 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {t('method.ayi.colDim')}
               </Text>
-              <Text className="w-14 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
+              <Text className="w-24 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
                 {t('method.ayi.colWeight')}
               </Text>
             </View>
             {[
-              { label: 'Youth Demography & Participation', sub: 'Population share, voter turnout, parliamentary representation, trust in government',                                w: '20%' },
-              { label: 'Education',                        sub: 'Literacy, primary/secondary/tertiary enrollment, dropout, teacher–student ratio, education spending',               w: '15%' },
-              { label: 'Employment',                       sub: 'Unemployment, labour-force participation, employment-to-population, sectoral split, informal employment',           w: '15%' },
-              { label: 'Health',                           sub: 'Skilled births, contraception, HIV, mortality, mental health, maternal mortality, health spending',                  w: '15%' },
-              { label: 'Entrepreneurship',                 sub: 'Startup survival, microcredit, IP registrations, credit access, mobile money, internet access',                      w: '15%' },
-              { label: 'Peace & Security',                 sub: 'Internally displaced youth, trafficking victims, deaths from violent extremism',                                     w: '10%' },
-              { label: 'Access to Justice',                sub: 'Youth awaiting trial, youth imprisoned, juvenile detentions',                                                        w: '10%' },
+              { label: 'Youth Demography & Participation', sub: 'Population share, voter turnout, parliamentary representation, trust in government',                                w: t('youthIndex.notInRank') },
+              { label: 'Education',                        sub: 'Literacy, primary/secondary/tertiary enrollment, dropout, teacher–student ratio, education spending',               w: '25%' },
+              { label: 'Employment',                       sub: 'Unemployment, labour-force participation, employment-to-population, sectoral split, informal employment',           w: '25%' },
+              { label: 'Health',                           sub: 'Skilled births, contraception, HIV, mortality, mental health, maternal mortality, health spending',                  w: '25%' },
+              { label: 'Entrepreneurship',                 sub: 'Startup survival, microcredit, IP registrations, credit access, mobile money, internet access',                      w: '25%' },
+              { label: 'Peace & Security',                 sub: 'Internally displaced youth, trafficking victims, deaths from violent extremism',                                     w: t('youthIndex.notInRank') },
+              { label: 'Access to Justice',                sub: 'Youth awaiting trial, youth imprisoned, juvenile detentions',                                                        w: t('youthIndex.notInRank') },
             ].map((row, i, arr) => (
               <View
                 key={row.label}
@@ -143,7 +143,7 @@ function buildSections(t: TFunc): Section[] {
                   <Text className="text-sm font-semibold text-foreground">{row.label}</Text>
                   <Text className="text-[11px] text-muted-foreground">{row.sub}</Text>
                 </View>
-                <Text className="w-14 text-right text-sm font-bold text-foreground">{row.w}</Text>
+                <Text className="w-24 text-right text-xs font-bold text-foreground">{row.w}</Text>
               </View>
             ))}
           </View>
