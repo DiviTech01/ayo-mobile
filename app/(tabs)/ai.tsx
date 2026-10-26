@@ -46,9 +46,9 @@ const SUGGESTIONS: { icon: IconName; label: string; prompt: string }[] = [
   },
   {
     icon: 'trophy',
-    label: 'Top Youth Index performers',
+    label: 'Top AYEMI performers',
     prompt:
-      'Which 10 countries rank highest on the African Youth Index and what drives their success?',
+      'Which 10 countries rank highest on the AYEMI and what drives their success?',
   },
   {
     icon: 'document-text',

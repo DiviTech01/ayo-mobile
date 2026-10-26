@@ -42,7 +42,7 @@ export const CATEGORY_META: {
     key: 'myCountry',
     title: 'My country activity',
     description:
-      'New PKPB report, Youth Index rank change, policy update or new data for the country you picked.',
+      'New PKPB report, AYEMI rank change, policy update or new data for the country you picked.',
     icon: 'flag',
   },
   {
@@ -61,7 +61,7 @@ export const CATEGORY_META: {
     key: 'indexPolicyNews',
     title: 'Index, Policy & news',
     description:
-      'Youth Index refreshes, Policy Monitor & AYC changes, platform news and the monthly briefing.',
+      'AYEMI refreshes, Policy Monitor & AYC changes, platform news and the monthly briefing.',
     icon: 'megaphone',
   },
 ];

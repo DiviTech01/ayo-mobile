@@ -12,7 +12,7 @@ const API_BASE =
 
 export function NewsletterSignup({
   heading = 'Get monthly youth-data briefings',
-  subtitle = 'Be the first to know when new countries publish AYIMS reports, when the Youth Index updates, and when policy monitor flags new reforms across the continent.',
+  subtitle = 'Be the first to know when new countries publish AYIMS reports, when the AYEMI updates, and when policy monitor flags new reforms across the continent.',
   source = 'mobile-home',
 }: {
   heading?: string;

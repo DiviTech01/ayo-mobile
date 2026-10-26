@@ -44,7 +44,7 @@ export function SaaSHero() {
             }}
             className="flex-row items-center justify-center gap-2 rounded-md border border-border bg-card/40 px-6 py-3.5 active:bg-muted"
           >
-            <Text className="text-base font-semibold text-foreground">View Youth Index</Text>
+            <Text className="text-base font-semibold text-foreground">View AYEMI</Text>
           </Pressable>
         </View>
 

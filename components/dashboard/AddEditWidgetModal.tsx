@@ -91,8 +91,8 @@ export function AddEditWidgetModal({
     const finalIndicator = needsIndicator
       ? indicator
       : chartType === 'radar'
-        ? 'Youth Index dimensions'
-        : 'Youth Index score';
+        ? 'AYEMI dimensions'
+        : 'AYEMI score';
     onSubmit({ title, chartType, indicator: finalIndicator, countries });
     onClose();
   };

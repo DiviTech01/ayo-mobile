@@ -210,7 +210,7 @@ export function WidgetChart({ widget, height = 200 }: { widget: Widget; height?:
             {stat.change} rank change
           </Text>
         ) : (
-          <Text className="mt-2 text-sm font-medium text-muted-foreground">Youth Index score</Text>
+          <Text className="mt-2 text-sm font-medium text-muted-foreground">AYEMI score</Text>
         )}
       </View>
     );

@@ -51,7 +51,7 @@ export function LiveDataTicker() {
       const sorted = [...rankings].sort((a, b) => a.rank - b.rank);
       const top = sorted[0];
       out.push({
-        label: 'Top Youth Index',
+        label: 'Top AYEMI',
         value: `${top.flagEmoji ?? ''} ${top.countryName} · ${top.overallScore.toFixed(1)}`,
         color: '#fbbf24',
       });

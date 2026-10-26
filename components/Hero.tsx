@@ -73,7 +73,7 @@ export function Hero() {
             className="w-full flex-row items-center justify-center gap-2 rounded-md border border-border bg-card px-6 py-3.5 active:bg-muted"
           >
             <Ionicons name="trending-up" size={16} color={colors.foreground} />
-            <Text className="text-base font-semibold text-foreground">Youth Index</Text>
+            <Text className="text-base font-semibold text-foreground">AYEMI</Text>
           </Pressable>
           <Pressable
             onPress={() => {

@@ -42,7 +42,7 @@ const DEFAULT_WIDGETS: Widget[] = [
     id: 'w1',
     title: 'Cross-Dimensional Profile',
     chartType: 'radar',
-    indicator: 'Youth Index dimensions',
+    indicator: 'AYEMI dimensions',
     countries: RADAR_COUNTRIES,
   },
   {
